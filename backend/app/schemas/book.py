@@ -8,6 +8,7 @@ class BookSummary(BaseModel):
     title: str
     author: str | None
     source_filename: str
+    format: str
     chapter_count: int
     created_at: datetime
 

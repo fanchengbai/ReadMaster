@@ -7,11 +7,11 @@ from app.api.dependencies import get_app_settings, get_session
 from app.core.config import Settings
 from app.schemas.book import BookDetail, BookSummary, ChapterContent, ChapterSummary
 from app.services.books import (
-    MAX_TXT_SIZE,
+    MAX_UPLOAD_SIZE,
     delete_book,
     get_book,
     get_chapter,
-    import_txt_book,
+    import_book,
     list_books,
 )
 
@@ -28,10 +28,10 @@ async def import_book_endpoint(
 ) -> BookDetail:
     filename = file.filename or ""
     try:
-        payload = await file.read(MAX_TXT_SIZE + 1)
+        payload = await file.read(MAX_UPLOAD_SIZE + 1)
     finally:
         await file.close()
-    return import_txt_book(
+    return import_book(
         session,
         payload=payload,
         filename=filename,

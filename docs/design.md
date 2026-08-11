@@ -169,6 +169,8 @@ Question:
 
 [x] 导入TXT
 
+[x] 导入EPUB
+
 [x] 英文阅读
 
 [x] 点击查询单词

@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 
 from app.core.config import Settings
 from app.main import create_app
+from tests.helpers import create_minimal_epub
 
 SAMPLE_BOOK = b"""CHAPTER 1 Beginning
 
@@ -53,6 +54,32 @@ def test_import_list_and_read_book(tmp_path: Path) -> None:
     stored_books = list((tmp_path / "books").glob("*.txt"))
     assert len(stored_books) == 1
     assert stored_books[0].read_text(encoding="utf-8").startswith("CHAPTER 1")
+
+
+def test_import_epub_uses_embedded_metadata_and_navigation(tmp_path: Path) -> None:
+    with create_test_client(tmp_path) as client:
+        response = client.post(
+            "/api/v1/books/import",
+            files={
+                "file": (
+                    "learning.epub",
+                    create_minimal_epub(),
+                    "application/epub+zip",
+                )
+            },
+        )
+
+        assert response.status_code == 201
+        imported = response.json()
+        assert imported["title"] == "Learning Through Reading"
+        assert imported["author"] == "Jane Reader"
+        assert imported["format"] == "EPUB"
+        assert imported["chapter_count"] == 2
+        assert imported["chapters"][0]["title"] == "A New Beginning"
+
+    stored_books = list((tmp_path / "books").glob("*.epub"))
+    assert len(stored_books) == 1
+    assert stored_books[0].read_bytes().startswith(b"PK")
 
 
 def test_duplicate_book_returns_conflict(tmp_path: Path) -> None:

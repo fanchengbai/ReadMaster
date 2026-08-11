@@ -10,6 +10,7 @@ export interface BookSummary {
   title: string
   author: string | null
   source_filename: string
+  format: 'TXT' | 'EPUB'
   chapter_count: number
   created_at: string
 }
@@ -30,7 +31,7 @@ export async function fetchBooks(): Promise<BookSummary[]> {
   return response.json() as Promise<BookSummary[]>
 }
 
-export async function importTxtBook(file: File): Promise<BookDetail> {
+export async function importBook(file: File): Promise<BookDetail> {
   const body = new FormData()
   body.append('file', file)
 

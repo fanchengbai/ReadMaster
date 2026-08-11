@@ -1,6 +1,6 @@
 import { type ChangeEvent, useEffect, useRef, useState } from 'react'
 
-import { type BookSummary, fetchBooks, importTxtBook } from './api/books'
+import { type BookSummary, fetchBooks, importBook } from './api/books'
 
 type ServiceStatus = 'checking' | 'ready' | 'offline'
 type LibraryStatus = 'loading' | 'ready' | 'error'
@@ -51,15 +51,16 @@ export default function App() {
     event.target.value = ''
     if (!file) return
 
-    if (!file.name.toLowerCase().endsWith('.txt')) {
-      setNotice('请选择 TXT 格式的英文读物')
+    const extension = file.name.toLowerCase().split('.').pop()
+    if (extension !== 'txt' && extension !== 'epub') {
+      setNotice('请选择 TXT 或 EPUB 格式的英文读物')
       return
     }
 
     setIsImporting(true)
     setNotice(null)
     try {
-      const importedBook = await importTxtBook(file)
+      const importedBook = await importBook(file)
       setBooks((current) => [importedBook, ...current])
       setLibraryStatus('ready')
       setNotice(`《${importedBook.title}》导入成功`)
@@ -107,14 +108,14 @@ export default function App() {
           disabled={isImporting || serviceStatus === 'offline'}
           onClick={() => fileInputRef.current?.click()}
         >
-          {isImporting ? '正在导入…' : '导入 TXT'}
+          {isImporting ? '正在导入…' : '导入书籍'}
         </button>
         <input
           ref={fileInputRef}
           className="visually-hidden"
           type="file"
-          accept=".txt,text/plain"
-          aria-label="选择 TXT 文件"
+          accept=".txt,.epub,text/plain,application/epub+zip"
+          aria-label="选择 TXT 或 EPUB 文件"
           onChange={handleFileChange}
         />
       </section>
@@ -129,7 +130,7 @@ export default function App() {
         {libraryStatus === 'ready' && books.length === 0 && (
           <LibraryMessage
             title="书架还是空的"
-            detail="导入第一本 TXT 英文读物，ReadMaster 会自动识别章节和段落。"
+            detail="导入第一本 TXT 或 EPUB 英文读物，ReadMaster 会自动整理章节和段落。"
             action={
               <button type="button" onClick={() => fileInputRef.current?.click()}>
                 选择一本书
@@ -146,7 +147,7 @@ export default function App() {
                   <strong>{getInitials(book.title)}</strong>
                 </div>
                 <div className="book-info">
-                  <p className="book-format">TXT · {book.chapter_count} 章</p>
+                  <p className="book-format">{book.format} · {book.chapter_count} 章</p>
                   <h2>{book.title}</h2>
                   <p className="book-author">{book.author || '作者未知'}</p>
                   <div className="book-meta">
@@ -202,4 +203,3 @@ function formatDate(value: string): string {
     day: 'numeric',
   }).format(new Date(value))
 }
-

@@ -20,6 +20,7 @@ test('loads the local service and displays imported books', async () => {
         title: 'The Reading Mind',
         author: 'A. Reader',
         source_filename: 'reading-mind.txt',
+        format: 'TXT',
         chapter_count: 12,
         created_at: '2026-08-11T00:00:00Z',
       },
@@ -34,7 +35,7 @@ test('loads the local service and displays imported books', async () => {
   expect(screen.getByText('TXT · 12 章')).toBeInTheDocument()
 })
 
-test('imports a selected TXT file and adds it to the shelf', async () => {
+test('imports a selected EPUB file and adds it to the shelf', async () => {
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
     const url = String(input)
     if (url.endsWith('/health')) return jsonResponse({ status: 'ok', database: 'ok' })
@@ -42,9 +43,10 @@ test('imports a selected TXT file and adds it to the shelf', async () => {
       return jsonResponse(
         {
           id: 'book-2',
-          title: 'New Book',
+          title: 'New EPUB Book',
           author: null,
-          source_filename: 'new-book.txt',
+          source_filename: 'new-book.epub',
+          format: 'EPUB',
           chapter_count: 2,
           created_at: '2026-08-11T00:00:00Z',
           chapters: [],
@@ -56,13 +58,14 @@ test('imports a selected TXT file and adds it to the shelf', async () => {
   })
 
   render(<App />)
-  const input = screen.getByLabelText('选择 TXT 文件')
-  const file = new File(['CHAPTER 1\n\nRead this.'], 'new-book.txt', { type: 'text/plain' })
+  const input = screen.getByLabelText('选择 TXT 或 EPUB 文件')
+  const file = new File(['epub-content'], 'new-book.epub', { type: 'application/epub+zip' })
 
   fireEvent.change(input, { target: { files: [file] } })
 
-  expect(await screen.findByText('《New Book》导入成功')).toBeInTheDocument()
-  expect(screen.getByRole('heading', { name: 'New Book' })).toBeInTheDocument()
+  expect(await screen.findByText('《New EPUB Book》导入成功')).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: 'New EPUB Book' })).toBeInTheDocument()
+  expect(screen.getByText('EPUB · 2 章')).toBeInTheDocument()
 })
 
 function jsonResponse(body: unknown, status = 200): Response {

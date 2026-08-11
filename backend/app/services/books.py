@@ -14,12 +14,15 @@ from app.schemas.book import (
     ChapterSummary,
     ParagraphResponse,
 )
-from app.services.txt_parser import decode_txt, parse_txt
+from app.services.epub_parser import MAX_EPUB_SIZE, ParsedEpub, parse_epub
+from app.services.txt_parser import ParsedChapter, decode_txt, parse_txt
 
 MAX_TXT_SIZE = 10 * 1024 * 1024
+MAX_UPLOAD_SIZE = MAX_EPUB_SIZE
+SUPPORTED_EXTENSIONS = {".txt", ".epub"}
 
 
-def import_txt_book(
+def import_book(
     session: Session,
     *,
     payload: bytes,
@@ -28,32 +31,37 @@ def import_txt_book(
     title: str | None = None,
     author: str | None = None,
 ) -> BookDetail:
-    if Path(filename).suffix.lower() != ".txt":
-        raise AppError("UNSUPPORTED_FILE_TYPE", "第一版仅支持导入 TXT 文件")
-    if len(payload) > MAX_TXT_SIZE:
-        raise AppError("FILE_TOO_LARGE", "TXT 文件不能超过 10 MB", status_code=413)
+    extension = Path(filename).suffix.lower()
+    if extension not in SUPPORTED_EXTENSIONS:
+        raise AppError("UNSUPPORTED_FILE_TYPE", "目前仅支持导入 TXT 和 EPUB 文件")
 
     file_hash = hashlib.sha256(payload).hexdigest()
     duplicate = session.scalar(select(Book.id).where(Book.file_hash == file_hash))
     if duplicate is not None:
         raise AppError("BOOK_ALREADY_EXISTS", "这本书已经导入", status_code=409)
 
-    text = decode_txt(payload)
-    parsed_chapters = parse_txt(text)
-    if not parsed_chapters:
-        raise AppError("EMPTY_FILE", "TXT 文件中没有可阅读的内容")
+    if extension == ".txt":
+        parsed_chapters, detected_title, detected_author, stored_payload = prepare_txt(
+            payload,
+            filename,
+        )
+    else:
+        parsed_chapters, detected_title, detected_author, stored_payload = prepare_epub(
+            payload,
+            filename,
+        )
 
     book_id = str(uuid4())
     books_dir = data_dir / "books"
     books_dir.mkdir(parents=True, exist_ok=True)
-    relative_path = Path("books") / f"{book_id}.txt"
+    relative_path = Path("books") / f"{book_id}{extension}"
     stored_file = data_dir / relative_path
-    stored_file.write_text(text, encoding="utf-8", newline="\n")
+    stored_file.write_bytes(stored_payload)
 
     book = Book(
         id=book_id,
-        title=(title or Path(filename).stem).strip() or "未命名书籍",
-        author=author.strip() if author and author.strip() else None,
+        title=(title or detected_title).strip() or "未命名书籍",
+        author=(author or detected_author or "").strip() or None,
         source_filename=Path(filename).name,
         stored_path=relative_path.as_posix(),
         file_hash=file_hash,
@@ -79,6 +87,27 @@ def import_txt_book(
         raise
 
     return to_book_detail(book)
+
+
+def prepare_txt(
+    payload: bytes,
+    filename: str,
+) -> tuple[list[ParsedChapter], str, None, bytes]:
+    if len(payload) > MAX_TXT_SIZE:
+        raise AppError("FILE_TOO_LARGE", "TXT 文件不能超过 10 MB", status_code=413)
+    text = decode_txt(payload)
+    chapters = parse_txt(text)
+    if not chapters:
+        raise AppError("EMPTY_FILE", "TXT 文件中没有可阅读的内容")
+    return chapters, Path(filename).stem, None, text.encode("utf-8")
+
+
+def prepare_epub(
+    payload: bytes,
+    filename: str,
+) -> tuple[list[ParsedChapter], str, str | None, bytes]:
+    parsed: ParsedEpub = parse_epub(payload)
+    return parsed.chapters, parsed.title or Path(filename).stem, parsed.author, payload
 
 
 def list_books(session: Session) -> list[BookSummary]:
@@ -141,6 +170,7 @@ def to_book_summary(book: Book) -> BookSummary:
         title=book.title,
         author=book.author,
         source_filename=book.source_filename,
+        format=Path(book.source_filename).suffix.removeprefix(".").upper(),
         chapter_count=len(book.chapters),
         created_at=book.created_at,
     )
