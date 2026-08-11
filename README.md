@@ -4,7 +4,7 @@
 
 ReadMaster 是一个面向英语阅读学习的智能辅助系统。
 
-> 当前状态：MVP v0.1 开发中。工程骨架、前后端健康检查和 SQLite 基础数据层已经建立。
+> 当前状态：MVP v0.1 开发中。已完成 TXT 导入、章节与段落解析、书架展示和基础书籍接口。
 
 目标：
 
@@ -178,6 +178,16 @@ ReadMaster/
 └─ docs/           产品与技术文档
 ```
 
+## 当前可用功能
+
+- 导入最大 10 MB 的 TXT 英文读物
+- 自动识别常见 `Chapter`、`Part` 和 `Book` 章节标题
+- 自动划分段落，并将文本统一保存为 UTF-8
+- 书架列表、书籍详情、章节目录和章节内容接口
+- 重复书籍、错误格式和空文件校验
+- 删除书籍及对应的本地文件
+- 启动时自动升级 SQLite 数据库结构
+
 ## 本地开发
 
 ### 环境要求
@@ -194,8 +204,13 @@ ReadMaster/
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e ".\backend[dev]"
 cd backend
-..\.venv\Scripts\python.exe -m alembic upgrade head
 ..\.venv\Scripts\python.exe -m uvicorn app.main:app --reload
+```
+
+应用启动时会自动执行数据库迁移。也可以在 `backend` 目录中手动运行：
+
+```powershell
+..\.venv\Scripts\python.exe -m alembic upgrade head
 ```
 
 - 后端默认地址：`http://127.0.0.1:8000`

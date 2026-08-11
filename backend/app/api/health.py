@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 
+from app.api.dependencies import get_database
 from app.db.database import Database
 
 router = APIRouter(tags=["system"])
@@ -12,10 +13,6 @@ class HealthResponse(BaseModel):
     status: str
     version: str
     database: str
-
-
-def get_database(request: Request) -> Database:
-    return request.app.state.database
 
 
 @router.get("/health", response_model=HealthResponse)

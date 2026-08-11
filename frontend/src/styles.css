@@ -1,6 +1,6 @@
 :root {
-  color: #18251f;
-  background: #f4f0e8;
+  color: #1b2822;
+  background: #f3f0e8;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", sans-serif;
   font-synthesis: none;
@@ -11,13 +11,17 @@
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
   background:
-    radial-gradient(circle at 80% 10%, rgb(211 225 204 / 75%), transparent 28rem),
-    #f4f0e8;
+    radial-gradient(circle at 82% 0%, rgb(211 225 204 / 72%), transparent 29rem),
+    #f3f0e8;
 }
 
 button,
@@ -25,10 +29,26 @@ input {
   font: inherit;
 }
 
-.shell {
-  width: min(1120px, calc(100% - 48px));
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+.app-shell {
+  width: min(1180px, calc(100% - 48px));
   margin: 0 auto;
-  padding: 32px 0 64px;
+  padding-bottom: 72px;
+}
+
+.topbar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  min-height: 88px;
+  border-bottom: 1px solid rgb(31 76 58 / 16%);
 }
 
 .brand {
@@ -36,7 +56,7 @@ input {
   align-items: center;
   gap: 12px;
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 750;
   letter-spacing: -0.02em;
 }
 
@@ -49,52 +69,39 @@ input {
   color: #f7f3eb;
   background: #1f4c3a;
   font-family: Georgia, serif;
+  font-size: 15px;
 }
 
-.hero {
-  max-width: 840px;
-  padding: 120px 0 88px;
+.topbar nav {
+  display: flex;
+  align-items: center;
+  gap: 34px;
+  height: 88px;
 }
 
-.eyebrow {
-  margin: 0 0 20px;
-  color: #557064;
-  font-size: 13px;
+.topbar nav a,
+.topbar nav span {
+  display: grid;
+  height: 100%;
+  align-items: center;
+  color: #718078;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.topbar nav .active {
+  border-bottom: 2px solid #1f4c3a;
+  color: #1f4c3a;
   font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-h1 {
-  max-width: 800px;
-  margin: 0;
-  color: #153a2c;
-  font-family: Georgia, "Noto Serif SC", serif;
-  font-size: clamp(48px, 7vw, 82px);
-  font-weight: 500;
-  letter-spacing: -0.055em;
-  line-height: 1.08;
-}
-
-.summary {
-  max-width: 620px;
-  margin: 32px 0 0;
-  color: #53615b;
-  font-size: 19px;
-  line-height: 1.8;
 }
 
 .service-status {
   display: inline-flex;
+  justify-self: end;
   align-items: center;
-  gap: 10px;
-  margin-top: 34px;
-  padding: 10px 14px;
-  border: 1px solid rgb(31 76 58 / 16%);
-  border-radius: 999px;
-  color: #52625b;
-  background: rgb(255 255 255 / 42%);
-  font-size: 14px;
+  gap: 9px;
+  color: #617068;
+  font-size: 13px;
 }
 
 .service-status span {
@@ -105,79 +112,285 @@ h1 {
 }
 
 .service-status--ready span {
-  background: #2e8b57;
+  background: #2f8757;
 }
 
 .service-status--offline span {
   background: #b95748;
 }
 
-.roadmap {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  border-top: 1px solid rgb(31 76 58 / 20%);
+.library-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 48px;
+  padding: 80px 0 44px;
 }
 
-.roadmap article {
-  min-height: 220px;
-  padding: 32px 40px 24px 0;
+.eyebrow {
+  margin: 0 0 12px;
+  color: #718078;
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
-.roadmap article + article {
-  padding-left: 40px;
-  border-left: 1px solid rgb(31 76 58 / 20%);
-}
-
-.roadmap span {
-  color: #7b8b83;
-  font-family: Georgia, serif;
-  font-size: 14px;
-}
-
-.roadmap h2 {
-  margin: 40px 0 12px;
-  color: #1d3d31;
+h1 {
+  margin: 0;
+  color: #173c2e;
   font-family: Georgia, "Noto Serif SC", serif;
+  font-size: clamp(48px, 6vw, 72px);
+  font-weight: 500;
+  letter-spacing: -0.055em;
+  line-height: 1.08;
+}
+
+.library-header p:last-child {
+  margin: 20px 0 0;
+  color: #66736d;
+  font-size: 17px;
+}
+
+.import-button,
+.library-message button {
+  min-height: 48px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 14px;
+  color: #f7f3eb;
+  background: #1f4c3a;
+  font-weight: 700;
+  box-shadow: 0 10px 28px rgb(31 76 58 / 18%);
+}
+
+.import-button:hover,
+.library-message button:hover {
+  background: #173d2e;
+}
+
+.import-button:disabled {
+  opacity: 0.55;
+}
+
+.notice {
+  margin-bottom: 22px;
+  padding: 14px 18px;
+  border: 1px solid rgb(31 76 58 / 18%);
+  border-radius: 14px;
+  color: #264a3c;
+  background: rgb(255 255 255 / 48%);
+}
+
+.library-content {
+  min-height: 360px;
+  border-top: 1px solid rgb(31 76 58 / 16%);
+  padding-top: 36px;
+}
+
+.library-message {
+  display: grid;
+  min-height: 360px;
+  place-items: center;
+  align-content: center;
+  text-align: center;
+}
+
+.library-message > span {
+  display: grid;
+  width: 78px;
+  height: 92px;
+  place-items: center;
+  border: 1px solid rgb(31 76 58 / 22%);
+  border-radius: 7px 14px 14px 7px;
+  color: #6d8177;
+  background: rgb(255 255 255 / 36%);
+  font-family: Georgia, serif;
   font-size: 24px;
+}
+
+.library-message h2 {
+  margin: 24px 0 0;
+  color: #26483b;
+  font-family: Georgia, "Noto Serif SC", serif;
+  font-size: 26px;
   font-weight: 500;
 }
 
-.roadmap p {
-  margin: 0;
-  color: #66736d;
+.library-message p {
+  max-width: 500px;
+  margin: 12px 0 24px;
+  color: #728078;
   line-height: 1.7;
 }
 
-@media (max-width: 720px) {
-  .shell {
-    width: min(100% - 32px, 1120px);
+.book-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.book-card {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 28px;
+  min-height: 260px;
+  padding: 24px;
+  border: 1px solid rgb(31 76 58 / 14%);
+  border-radius: 24px;
+  background: rgb(255 255 255 / 46%);
+  box-shadow: 0 16px 48px rgb(48 59 52 / 6%);
+}
+
+.book-cover {
+  display: flex;
+  min-height: 212px;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px;
+  border-radius: 8px 18px 18px 8px;
+  color: #f6f0e6;
+  background: #345f4e;
+  box-shadow: 8px 12px 24px rgb(27 50 41 / 18%);
+}
+
+.book-cover--2 {
+  background: #7d5d45;
+}
+
+.book-cover--3 {
+  background: #3e5368;
+}
+
+.book-cover span {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+}
+
+.book-cover strong {
+  font-family: Georgia, serif;
+  font-size: 46px;
+  font-weight: 500;
+}
+
+.book-info {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.book-format {
+  margin: 2px 0 12px;
+  color: #79877f;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.book-info h2 {
+  margin: 0;
+  overflow: hidden;
+  color: #1c3e32;
+  font-family: Georgia, "Noto Serif SC", serif;
+  font-size: 25px;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  text-overflow: ellipsis;
+}
+
+.book-author {
+  margin: 8px 0 0;
+  color: #6f7d76;
+  font-size: 14px;
+}
+
+.book-meta {
+  display: grid;
+  gap: 5px;
+  margin-top: auto;
+  color: #89948e;
+  font-size: 12px;
+}
+
+.book-meta span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.book-info button {
+  align-self: start;
+  margin-top: 18px;
+  padding: 9px 0;
+  border: 0;
+  color: #52655c;
+  background: transparent;
+  font-weight: 700;
+}
+
+.book-info button:disabled {
+  opacity: 0.55;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 880px) {
+  .topbar {
+    grid-template-columns: 1fr auto;
   }
 
-  .hero {
-    padding: 80px 0 64px;
+  .topbar nav {
+    display: none;
   }
 
-  h1 {
-    font-size: clamp(42px, 13vw, 64px);
-  }
-
-  .roadmap {
+  .book-grid {
     grid-template-columns: 1fr;
-  }
-
-  .roadmap article {
-    min-height: auto;
-    padding: 28px 0;
-  }
-
-  .roadmap article + article {
-    padding-left: 0;
-    border-top: 1px solid rgb(31 76 58 / 20%);
-    border-left: 0;
-  }
-
-  .roadmap h2 {
-    margin-top: 24px;
   }
 }
 
+@media (max-width: 600px) {
+  .app-shell {
+    width: min(100% - 28px, 1180px);
+  }
+
+  .service-status {
+    font-size: 0;
+  }
+
+  .library-header {
+    align-items: start;
+    flex-direction: column;
+    padding-top: 56px;
+  }
+
+  .import-button {
+    width: 100%;
+  }
+
+  .book-card {
+    grid-template-columns: 108px 1fr;
+    gap: 20px;
+    min-height: 220px;
+    padding: 18px;
+  }
+
+  .book-cover {
+    min-height: 184px;
+    padding: 15px;
+  }
+
+  .book-cover strong {
+    font-size: 32px;
+  }
+}

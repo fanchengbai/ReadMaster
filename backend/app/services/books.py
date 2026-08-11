@@ -1,0 +1,162 @@
+import hashlib
+from pathlib import Path
+from uuid import uuid4
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session, selectinload
+
+from app.core.errors import AppError
+from app.models import Book, Chapter, Paragraph
+from app.schemas.book import (
+    BookDetail,
+    BookSummary,
+    ChapterContent,
+    ChapterSummary,
+    ParagraphResponse,
+)
+from app.services.txt_parser import decode_txt, parse_txt
+
+MAX_TXT_SIZE = 10 * 1024 * 1024
+
+
+def import_txt_book(
+    session: Session,
+    *,
+    payload: bytes,
+    filename: str,
+    data_dir: Path,
+    title: str | None = None,
+    author: str | None = None,
+) -> BookDetail:
+    if Path(filename).suffix.lower() != ".txt":
+        raise AppError("UNSUPPORTED_FILE_TYPE", "第一版仅支持导入 TXT 文件")
+    if len(payload) > MAX_TXT_SIZE:
+        raise AppError("FILE_TOO_LARGE", "TXT 文件不能超过 10 MB", status_code=413)
+
+    file_hash = hashlib.sha256(payload).hexdigest()
+    duplicate = session.scalar(select(Book.id).where(Book.file_hash == file_hash))
+    if duplicate is not None:
+        raise AppError("BOOK_ALREADY_EXISTS", "这本书已经导入", status_code=409)
+
+    text = decode_txt(payload)
+    parsed_chapters = parse_txt(text)
+    if not parsed_chapters:
+        raise AppError("EMPTY_FILE", "TXT 文件中没有可阅读的内容")
+
+    book_id = str(uuid4())
+    books_dir = data_dir / "books"
+    books_dir.mkdir(parents=True, exist_ok=True)
+    relative_path = Path("books") / f"{book_id}.txt"
+    stored_file = data_dir / relative_path
+    stored_file.write_text(text, encoding="utf-8", newline="\n")
+
+    book = Book(
+        id=book_id,
+        title=(title or Path(filename).stem).strip() or "未命名书籍",
+        author=author.strip() if author and author.strip() else None,
+        source_filename=Path(filename).name,
+        stored_path=relative_path.as_posix(),
+        file_hash=file_hash,
+    )
+    for chapter_index, parsed in enumerate(parsed_chapters):
+        chapter = Chapter(
+            title=parsed.title,
+            order_index=chapter_index,
+            raw_text=parsed.raw_text,
+        )
+        chapter.paragraphs = [
+            Paragraph(order_index=paragraph_index, content=content)
+            for paragraph_index, content in enumerate(parsed.paragraphs)
+        ]
+        book.chapters.append(chapter)
+
+    try:
+        session.add(book)
+        session.commit()
+    except Exception:
+        session.rollback()
+        stored_file.unlink(missing_ok=True)
+        raise
+
+    return to_book_detail(book)
+
+
+def list_books(session: Session) -> list[BookSummary]:
+    books = session.scalars(
+        select(Book).options(selectinload(Book.chapters)).order_by(Book.created_at.desc())
+    ).all()
+    return [to_book_summary(book) for book in books]
+
+
+def get_book(session: Session, book_id: str) -> BookDetail:
+    book = session.scalar(
+        select(Book)
+        .where(Book.id == book_id)
+        .options(selectinload(Book.chapters).selectinload(Chapter.paragraphs))
+    )
+    if book is None:
+        raise AppError("BOOK_NOT_FOUND", "未找到指定书籍", status_code=404)
+    return to_book_detail(book)
+
+
+def get_chapter(session: Session, chapter_id: str) -> ChapterContent:
+    chapter = session.scalar(
+        select(Chapter)
+        .where(Chapter.id == chapter_id)
+        .options(selectinload(Chapter.paragraphs))
+    )
+    if chapter is None:
+        raise AppError("CHAPTER_NOT_FOUND", "未找到指定章节", status_code=404)
+    return ChapterContent(
+        id=chapter.id,
+        book_id=chapter.book_id,
+        title=chapter.title,
+        order_index=chapter.order_index,
+        paragraph_count=len(chapter.paragraphs),
+        paragraphs=[
+            ParagraphResponse(
+                id=paragraph.id,
+                order_index=paragraph.order_index,
+                content=paragraph.content,
+            )
+            for paragraph in chapter.paragraphs
+        ],
+    )
+
+
+def delete_book(session: Session, book_id: str, data_dir: Path) -> None:
+    book = session.get(Book, book_id)
+    if book is None:
+        raise AppError("BOOK_NOT_FOUND", "未找到指定书籍", status_code=404)
+
+    stored_file = data_dir / book.stored_path
+    session.delete(book)
+    session.commit()
+    stored_file.unlink(missing_ok=True)
+
+
+def to_book_summary(book: Book) -> BookSummary:
+    return BookSummary(
+        id=book.id,
+        title=book.title,
+        author=book.author,
+        source_filename=book.source_filename,
+        chapter_count=len(book.chapters),
+        created_at=book.created_at,
+    )
+
+
+def to_book_detail(book: Book) -> BookDetail:
+    summary = to_book_summary(book)
+    return BookDetail(
+        **summary.model_dump(),
+        chapters=[
+            ChapterSummary(
+                id=chapter.id,
+                title=chapter.title,
+                order_index=chapter.order_index,
+                paragraph_count=len(chapter.paragraphs),
+            )
+            for chapter in book.chapters
+        ],
+    )
