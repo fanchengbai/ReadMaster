@@ -1,0 +1,183 @@
+:root {
+  color: #18251f;
+  background: #f4f0e8;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 80% 10%, rgb(211 225 204 / 75%), transparent 28rem),
+    #f4f0e8;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.shell {
+  width: min(1120px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 32px 0 64px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.brand-mark {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 12px;
+  color: #f7f3eb;
+  background: #1f4c3a;
+  font-family: Georgia, serif;
+}
+
+.hero {
+  max-width: 840px;
+  padding: 120px 0 88px;
+}
+
+.eyebrow {
+  margin: 0 0 20px;
+  color: #557064;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+h1 {
+  max-width: 800px;
+  margin: 0;
+  color: #153a2c;
+  font-family: Georgia, "Noto Serif SC", serif;
+  font-size: clamp(48px, 7vw, 82px);
+  font-weight: 500;
+  letter-spacing: -0.055em;
+  line-height: 1.08;
+}
+
+.summary {
+  max-width: 620px;
+  margin: 32px 0 0;
+  color: #53615b;
+  font-size: 19px;
+  line-height: 1.8;
+}
+
+.service-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 34px;
+  padding: 10px 14px;
+  border: 1px solid rgb(31 76 58 / 16%);
+  border-radius: 999px;
+  color: #52625b;
+  background: rgb(255 255 255 / 42%);
+  font-size: 14px;
+}
+
+.service-status span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #a68147;
+}
+
+.service-status--ready span {
+  background: #2e8b57;
+}
+
+.service-status--offline span {
+  background: #b95748;
+}
+
+.roadmap {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid rgb(31 76 58 / 20%);
+}
+
+.roadmap article {
+  min-height: 220px;
+  padding: 32px 40px 24px 0;
+}
+
+.roadmap article + article {
+  padding-left: 40px;
+  border-left: 1px solid rgb(31 76 58 / 20%);
+}
+
+.roadmap span {
+  color: #7b8b83;
+  font-family: Georgia, serif;
+  font-size: 14px;
+}
+
+.roadmap h2 {
+  margin: 40px 0 12px;
+  color: #1d3d31;
+  font-family: Georgia, "Noto Serif SC", serif;
+  font-size: 24px;
+  font-weight: 500;
+}
+
+.roadmap p {
+  margin: 0;
+  color: #66736d;
+  line-height: 1.7;
+}
+
+@media (max-width: 720px) {
+  .shell {
+    width: min(100% - 32px, 1120px);
+  }
+
+  .hero {
+    padding: 80px 0 64px;
+  }
+
+  h1 {
+    font-size: clamp(42px, 13vw, 64px);
+  }
+
+  .roadmap {
+    grid-template-columns: 1fr;
+  }
+
+  .roadmap article {
+    min-height: auto;
+    padding: 28px 0;
+  }
+
+  .roadmap article + article {
+    padding-left: 0;
+    border-top: 1px solid rgb(31 76 58 / 20%);
+    border-left: 0;
+  }
+
+  .roadmap h2 {
+    margin-top: 24px;
+  }
+}
+

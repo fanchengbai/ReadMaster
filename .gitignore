@@ -1,0 +1,26 @@
+# Local environment
+.env
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Frontend
+node_modules/
+dist/
+coverage/
+.cache/
+
+# Runtime data
+data/*
+!data/.gitkeep
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

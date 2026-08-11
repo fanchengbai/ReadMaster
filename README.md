@@ -2,7 +2,9 @@
 
 ## Personal English Reading Intelligence System
 
-ReadModel 是一个面向英语阅读学习的智能辅助系统。
+ReadMaster 是一个面向英语阅读学习的智能辅助系统。
+
+> 当前状态：MVP v0.1 开发中。工程骨架、前后端健康检查和 SQLite 基础数据层已经建立。
 
 目标：
 
@@ -155,3 +157,74 @@ AI不是系统核心，
 
 - Personal Language Model
 - 个性化学习模型
+
+## 已确认的 MVP 方案
+
+- 本地 Web 应用
+- 混合词典架构，第一版以本地基础词典为主
+- 英文阅读与单词中文释义
+- 删除书籍后保留生词和上下文快照
+- 桌面浏览器优先，手机保证基本可用
+
+完整方案见 [技术设计文档](docs/technical-design.md)。
+
+## 项目结构
+
+```text
+ReadMaster/
+├─ frontend/       React + TypeScript + Vite
+├─ backend/        FastAPI + SQLAlchemy + SQLite
+├─ data/           本地运行数据，不提交到 Git
+└─ docs/           产品与技术文档
+```
+
+## 本地开发
+
+### 环境要求
+
+- Python 3.12+
+- Node.js 22+
+- pnpm 10+
+
+### 后端
+
+在项目根目录执行：
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e ".\backend[dev]"
+cd backend
+..\.venv\Scripts\python.exe -m alembic upgrade head
+..\.venv\Scripts\python.exe -m uvicorn app.main:app --reload
+```
+
+- 后端默认地址：`http://127.0.0.1:8000`
+- 接口文档：`http://127.0.0.1:8000/docs`
+- 健康检查：`http://127.0.0.1:8000/api/v1/health`
+
+### 前端
+
+新开一个终端，在项目根目录执行：
+
+```powershell
+cd frontend
+pnpm install
+pnpm dev
+```
+
+前端默认地址：`http://localhost:5173`
+
+## 验证
+
+```powershell
+# 后端
+cd backend
+..\.venv\Scripts\python.exe -m pytest
+..\.venv\Scripts\python.exe -m ruff check app tests
+
+# 前端
+cd frontend
+pnpm test
+pnpm build
+pnpm lint
+```
