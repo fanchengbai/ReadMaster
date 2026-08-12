@@ -2,6 +2,7 @@ import { type ChangeEvent, useEffect, useRef, useState } from 'react'
 
 import { type BookSummary, fetchBooks, importBook } from './api/books'
 import ReaderView from './ReaderView'
+import VocabularyView from './VocabularyView'
 
 type ServiceStatus = 'checking' | 'ready' | 'offline'
 type LibraryStatus = 'loading' | 'ready' | 'error'
@@ -18,6 +19,7 @@ export default function App() {
   const [isImporting, setIsImporting] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [readingBookId, setReadingBookId] = useState<string | null>(null)
+  const [view, setView] = useState<'library' | 'vocabulary'>('library')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -97,6 +99,10 @@ export default function App() {
     )
   }
 
+  if (view === 'vocabulary') {
+    return <VocabularyView onBack={() => setView('library')} />
+  }
+
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -108,7 +114,7 @@ export default function App() {
           <a className="active" href="#library">
             书架
           </a>
-          <span aria-disabled="true">生词</span>
+          <button type="button" onClick={() => setView('vocabulary')}>生词</button>
         </nav>
         <div className={`service-status service-status--${serviceStatus}`} role="status">
           <span aria-hidden="true" />

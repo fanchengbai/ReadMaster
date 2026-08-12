@@ -13,6 +13,9 @@ import {
   loadReaderSettings,
   storeReaderSettings,
 } from './reader-settings'
+import type { WordSelection } from './api/vocabulary'
+import ClickableParagraph from './ClickableParagraph'
+import WordCard from './WordCard'
 
 interface ReaderViewProps {
   bookId: string
@@ -30,6 +33,7 @@ export default function ReaderView({ bookId, onClose, onProgressChange }: Reader
   const [contentsOpen, setContentsOpen] = useState(true)
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [errorMessage, setErrorMessage] = useState('')
+  const [selectedWord, setSelectedWord] = useState<WordSelection | null>(null)
   const articleRef = useRef<HTMLElement>(null)
   const lastSavedRef = useRef('')
   const resumeParagraphRef = useRef<string | null>(null)
@@ -146,6 +150,7 @@ export default function ReaderView({ bookId, onClose, onProgressChange }: Reader
     if (chapterId === activeChapterId) return
     setStatus('loading')
     setActiveParagraphId(null)
+    setSelectedWord(null)
     setActiveChapterId(chapterId)
     if (window.innerWidth < 900) setContentsOpen(false)
   }
@@ -276,7 +281,13 @@ export default function ReaderView({ bookId, onClose, onProgressChange }: Reader
                   key={paragraph.id}
                   data-paragraph-id={paragraph.id}
                 >
-                  {paragraph.content}
+                  <ClickableParagraph
+                    bookId={bookId}
+                    chapterId={chapter.id}
+                    paragraphId={paragraph.id}
+                    content={paragraph.content}
+                    onWordClick={setSelectedWord}
+                  />
                 </p>
               ))}
               <nav className="chapter-navigation" aria-label="章节切换">
@@ -299,6 +310,17 @@ export default function ReaderView({ bookId, onClose, onProgressChange }: Reader
             </article>
           )}
         </main>
+        {selectedWord && chapter && (
+          <WordCard
+            selection={selectedWord}
+            context={
+              chapter.paragraphs.find((item) => item.id === selectedWord.paragraph_id)?.content ||
+              selectedWord.word
+            }
+            onClose={() => setSelectedWord(null)}
+            onSaved={() => undefined}
+          />
+        )}
       </div>
     </div>
   )

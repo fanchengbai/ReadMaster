@@ -23,4 +23,7 @@ def test_migrations_create_current_schema(tmp_path: Path) -> None:
         "chapters",
         "paragraphs",
         "reading_progress",
+        "words",
+        "user_words",
+        "word_occurrences",
     } <= table_names

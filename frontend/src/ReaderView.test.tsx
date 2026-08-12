@@ -64,12 +64,17 @@ test('opens the saved chapter and moves to the next chapter', async () => {
   render(<ReaderView bookId="book-1" onClose={vi.fn()} onProgressChange={vi.fn()} />)
 
   expect(await screen.findByRole('heading', { name: 'A Beginning' })).toBeInTheDocument()
-  expect(screen.getByText('Reading starts here.')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Reading' }).closest('p')).toHaveTextContent(
+    'Reading starts here.',
+  )
 
   fireEvent.click(screen.getByRole('button', { name: '下一章 →' }))
 
   expect(await screen.findByRole('heading', { name: 'Practice' })).toBeInTheDocument()
-  expect(screen.getByText('Practice builds skill.')).toBeInTheDocument()
+  const practiceWord = screen
+    .getAllByRole('button', { name: 'Practice' })
+    .find((element) => element.closest('p'))
+  expect(practiceWord?.closest('p')).toHaveTextContent('Practice builds skill.')
   expect(screen.getByRole('button', { name: '下一章 →' })).toBeDisabled()
 })
 

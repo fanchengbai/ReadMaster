@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app import models  # noqa: F401
 from app.api.books import router as books_router
 from app.api.health import router as health_router
+from app.api.vocabulary import router as vocabulary_router
 from app.core.config import Settings, get_settings
 from app.core.errors import AppError, app_error_handler
 from app.db.database import Database
@@ -49,6 +50,7 @@ def create_app(
     app.add_exception_handler(AppError, app_error_handler)  # type: ignore[arg-type]
     app.include_router(health_router, prefix=app_settings.api_prefix)
     app.include_router(books_router, prefix=app_settings.api_prefix)
+    app.include_router(vocabulary_router, prefix=app_settings.api_prefix)
     return app
 
 
