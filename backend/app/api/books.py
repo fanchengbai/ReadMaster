@@ -5,7 +5,14 @@ from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_app_settings, get_session
 from app.core.config import Settings
-from app.schemas.book import BookDetail, BookSummary, ChapterContent, ChapterSummary
+from app.schemas.book import (
+    BookDetail,
+    BookSummary,
+    ChapterContent,
+    ChapterSummary,
+    ReadingProgressResponse,
+    ReadingProgressUpdate,
+)
 from app.services.books import (
     MAX_UPLOAD_SIZE,
     delete_book,
@@ -14,6 +21,7 @@ from app.services.books import (
     import_book,
     list_books,
 )
+from app.services.progress import get_progress, update_progress
 
 router = APIRouter(tags=["books"])
 
@@ -71,6 +79,23 @@ def get_chapter_endpoint(
     session: Annotated[Session, Depends(get_session)],
 ) -> ChapterContent:
     return get_chapter(session, chapter_id)
+
+
+@router.get("/books/{book_id}/progress", response_model=ReadingProgressResponse)
+def get_progress_endpoint(
+    book_id: str,
+    session: Annotated[Session, Depends(get_session)],
+) -> ReadingProgressResponse:
+    return get_progress(session, book_id)
+
+
+@router.put("/books/{book_id}/progress", response_model=ReadingProgressResponse)
+def update_progress_endpoint(
+    book_id: str,
+    update: ReadingProgressUpdate,
+    session: Annotated[Session, Depends(get_session)],
+) -> ReadingProgressResponse:
+    return update_progress(session, book_id, update)
 
 
 @router.delete("/books/{book_id}", status_code=status.HTTP_204_NO_CONTENT)

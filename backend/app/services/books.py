@@ -112,7 +112,9 @@ def prepare_epub(
 
 def list_books(session: Session) -> list[BookSummary]:
     books = session.scalars(
-        select(Book).options(selectinload(Book.chapters)).order_by(Book.created_at.desc())
+        select(Book)
+        .options(selectinload(Book.chapters), selectinload(Book.reading_progress))
+        .order_by(Book.created_at.desc())
     ).all()
     return [to_book_summary(book) for book in books]
 
@@ -121,7 +123,10 @@ def get_book(session: Session, book_id: str) -> BookDetail:
     book = session.scalar(
         select(Book)
         .where(Book.id == book_id)
-        .options(selectinload(Book.chapters).selectinload(Chapter.paragraphs))
+        .options(
+            selectinload(Book.chapters).selectinload(Chapter.paragraphs),
+            selectinload(Book.reading_progress),
+        )
     )
     if book is None:
         raise AppError("BOOK_NOT_FOUND", "未找到指定书籍", status_code=404)
@@ -172,6 +177,8 @@ def to_book_summary(book: Book) -> BookSummary:
         source_filename=book.source_filename,
         format=Path(book.source_filename).suffix.removeprefix(".").upper(),
         chapter_count=len(book.chapters),
+        progress_percentage=book.reading_progress.percentage if book.reading_progress else 0.0,
+        current_chapter_id=(book.reading_progress.chapter_id if book.reading_progress else None),
         created_at=book.created_at,
     )
 

@@ -1,6 +1,7 @@
 import { type ChangeEvent, useEffect, useRef, useState } from 'react'
 
 import { type BookSummary, fetchBooks, importBook } from './api/books'
+import ReaderView from './ReaderView'
 
 type ServiceStatus = 'checking' | 'ready' | 'offline'
 type LibraryStatus = 'loading' | 'ready' | 'error'
@@ -16,6 +17,7 @@ export default function App() {
   const [books, setBooks] = useState<BookSummary[]>([])
   const [isImporting, setIsImporting] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
+  const [readingBookId, setReadingBookId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -76,6 +78,24 @@ export default function App() {
     ready: '本地服务已就绪',
     offline: '本地服务未启动',
   }[serviceStatus]
+
+  if (readingBookId) {
+    return (
+      <ReaderView
+        bookId={readingBookId}
+        onClose={() => setReadingBookId(null)}
+        onProgressChange={(bookId, percentage, chapterId) => {
+          setBooks((current) =>
+            current.map((book) =>
+              book.id === bookId
+                ? { ...book, progress_percentage: percentage, current_chapter_id: chapterId }
+                : book,
+            ),
+          )
+        }}
+      />
+    )
+  }
 
   return (
     <main className="app-shell">
@@ -154,8 +174,11 @@ export default function App() {
                     <span>{book.source_filename}</span>
                     <time dateTime={book.created_at}>{formatDate(book.created_at)}</time>
                   </div>
-                  <button type="button" disabled title="阅读器将在下一阶段开放">
-                    开始阅读
+                  <div className="book-progress" aria-label={`阅读进度 ${Math.round(book.progress_percentage)}%`}>
+                    <span style={{ width: `${book.progress_percentage}%` }} />
+                  </div>
+                  <button type="button" onClick={() => setReadingBookId(book.id)}>
+                    {book.progress_percentage > 0 ? '继续阅读' : '开始阅读'}
                   </button>
                 </div>
               </article>

@@ -10,6 +10,8 @@ class BookSummary(BaseModel):
     source_filename: str
     format: str
     chapter_count: int
+    progress_percentage: float
+    current_chapter_id: str | None
     created_at: datetime
 
 
@@ -33,3 +35,17 @@ class ParagraphResponse(BaseModel):
 class ChapterContent(ChapterSummary):
     book_id: str
     paragraphs: list[ParagraphResponse]
+
+
+class ReadingProgressResponse(BaseModel):
+    book_id: str
+    chapter_id: str
+    paragraph_id: str | None
+    percentage: float
+    updated_at: datetime | None
+
+
+class ReadingProgressUpdate(BaseModel):
+    chapter_id: str
+    paragraph_id: str | None = None
+    percentage: float

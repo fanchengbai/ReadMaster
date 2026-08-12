@@ -35,6 +35,7 @@ def test_import_list_and_read_book(tmp_path: Path) -> None:
         assert imported["title"] == "Reading Sample"
         assert imported["author"] == "ReadMaster"
         assert imported["chapter_count"] == 2
+        assert imported["progress_percentage"] == 0.0
         assert [chapter["title"] for chapter in imported["chapters"]] == [
             "CHAPTER 1 Beginning",
             "CHAPTER 2 Practice",
@@ -122,3 +123,56 @@ def test_delete_book_removes_database_records_and_stored_file(tmp_path: Path) ->
         assert client.get("/api/v1/books").json() == []
 
     assert list((tmp_path / "books").glob("*.txt")) == []
+
+
+def test_reading_progress_defaults_saves_and_appears_on_shelf(tmp_path: Path) -> None:
+    with create_test_client(tmp_path) as client:
+        imported = client.post(
+            "/api/v1/books/import",
+            files={"file": ("sample.txt", SAMPLE_BOOK, "text/plain")},
+        ).json()
+        chapter = client.get(f"/api/v1/chapters/{imported['chapters'][1]['id']}").json()
+        paragraph_id = chapter["paragraphs"][0]["id"]
+
+        initial = client.get(f"/api/v1/books/{imported['id']}/progress")
+        assert initial.status_code == 200
+        assert initial.json()["chapter_id"] == imported["chapters"][0]["id"]
+        assert initial.json()["percentage"] == 0.0
+
+        saved = client.put(
+            f"/api/v1/books/{imported['id']}/progress",
+            json={
+                "chapter_id": chapter["id"],
+                "paragraph_id": paragraph_id,
+                "percentage": 75.0,
+            },
+        )
+        assert saved.status_code == 200
+        assert saved.json()["percentage"] == 75.0
+
+        shelf_book = client.get("/api/v1/books").json()[0]
+        assert shelf_book["progress_percentage"] == 75.0
+        assert shelf_book["current_chapter_id"] == chapter["id"]
+
+
+def test_reading_progress_rejects_chapter_from_another_book(tmp_path: Path) -> None:
+    with create_test_client(tmp_path) as client:
+        first = client.post(
+            "/api/v1/books/import",
+            files={"file": ("first.txt", SAMPLE_BOOK, "text/plain")},
+        ).json()
+        second = client.post(
+            "/api/v1/books/import",
+            files={"file": ("second.txt", SAMPLE_BOOK + b"\nDifferent", "text/plain")},
+        ).json()
+
+        response = client.put(
+            f"/api/v1/books/{first['id']}/progress",
+            json={
+                "chapter_id": second["chapters"][0]["id"],
+                "percentage": 50.0,
+            },
+        )
+
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "CHAPTER_NOT_IN_BOOK"

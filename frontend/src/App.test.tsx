@@ -22,6 +22,8 @@ test('loads the local service and displays imported books', async () => {
         source_filename: 'reading-mind.txt',
         format: 'TXT',
         chapter_count: 12,
+        progress_percentage: 25,
+        current_chapter_id: 'chapter-1',
         created_at: '2026-08-11T00:00:00Z',
       },
     ])
@@ -48,6 +50,8 @@ test('imports a selected EPUB file and adds it to the shelf', async () => {
           source_filename: 'new-book.epub',
           format: 'EPUB',
           chapter_count: 2,
+          progress_percentage: 0,
+          current_chapter_id: null,
           created_at: '2026-08-11T00:00:00Z',
           chapters: [],
         },

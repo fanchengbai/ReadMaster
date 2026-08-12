@@ -9,6 +9,7 @@ from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.chapter import Chapter
+    from app.models.reading_progress import ReadingProgress
 
 
 def utc_now() -> datetime:
@@ -34,4 +35,9 @@ class Book(Base):
         back_populates="book",
         cascade="all, delete-orphan",
         order_by="Chapter.order_index",
+    )
+    reading_progress: Mapped["ReadingProgress | None"] = relationship(
+        back_populates="book",
+        cascade="all, delete-orphan",
+        uselist=False,
     )

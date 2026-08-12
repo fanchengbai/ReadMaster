@@ -17,4 +17,10 @@ def test_migrations_create_current_schema(tmp_path: Path) -> None:
     finally:
         engine.dispose()
 
-    assert {"alembic_version", "books", "chapters", "paragraphs"} <= table_names
+    assert {
+        "alembic_version",
+        "books",
+        "chapters",
+        "paragraphs",
+        "reading_progress",
+    } <= table_names
