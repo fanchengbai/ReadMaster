@@ -87,6 +87,11 @@ export async function importBook(file: File): Promise<BookDetail> {
   return response.json() as Promise<BookDetail>
 }
 
+export async function deleteBook(bookId: string): Promise<void> {
+  const response = await fetch(`/api/v1/books/${bookId}`, { method: 'DELETE' })
+  if (!response.ok) await throwApiError(response)
+}
+
 async function throwApiError(response: Response): Promise<never> {
   let message = '请求失败，请稍后重试'
   try {

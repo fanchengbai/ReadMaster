@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
 
 import App from './App'
@@ -104,6 +104,74 @@ test('imports a selected PDF file and adds it to the shelf', async () => {
 
   expect(await screen.findByText('《Reading From PDF》导入成功')).toBeInTheDocument()
   expect(screen.getByText('PDF · 3 章')).toBeInTheDocument()
+})
+
+test('removes a book from the shelf only after confirmation', async () => {
+  const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+  const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const url = String(input)
+    if (url.endsWith('/health')) return jsonResponse({ status: 'ok', database: 'ok' })
+    if (url.endsWith('/books/book-1') && init?.method === 'DELETE') {
+      return new Response(null, { status: 204 })
+    }
+    return jsonResponse([
+      {
+        id: 'book-1',
+        title: 'The Reading Mind',
+        author: 'A. Reader',
+        source_filename: 'reading-mind.txt',
+        format: 'TXT',
+        chapter_count: 12,
+        progress_percentage: 25,
+        current_chapter_id: 'chapter-1',
+        created_at: '2026-08-11T00:00:00Z',
+      },
+    ])
+  })
+
+  render(<App />)
+  expect(await screen.findByRole('heading', { name: 'The Reading Mind' })).toBeInTheDocument()
+
+  fireEvent.click(screen.getByRole('button', { name: '移除《The Reading Mind》' }))
+
+  expect(confirm).toHaveBeenCalledWith(expect.stringContaining('书籍文件和阅读进度会被删除'))
+  expect(await screen.findByText('《The Reading Mind》已从书架移除')).toBeInTheDocument()
+  expect(screen.queryByRole('heading', { name: 'The Reading Mind' })).not.toBeInTheDocument()
+  await waitFor(() => {
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/books/book-1', { method: 'DELETE' })
+  })
+})
+
+test('keeps a book when removal is cancelled', async () => {
+  vi.spyOn(window, 'confirm').mockReturnValue(false)
+  const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+    const url = String(input)
+    if (url.endsWith('/health')) return jsonResponse({ status: 'ok', database: 'ok' })
+    return jsonResponse([
+      {
+        id: 'book-1',
+        title: 'Keep This Book',
+        author: null,
+        source_filename: 'keep.txt',
+        format: 'TXT',
+        chapter_count: 1,
+        progress_percentage: 0,
+        current_chapter_id: null,
+        created_at: '2026-08-11T00:00:00Z',
+      },
+    ])
+  })
+
+  render(<App />)
+  expect(await screen.findByRole('heading', { name: 'Keep This Book' })).toBeInTheDocument()
+
+  fireEvent.click(screen.getByRole('button', { name: '移除《Keep This Book》' }))
+
+  expect(screen.getByRole('heading', { name: 'Keep This Book' })).toBeInTheDocument()
+  expect(fetchMock).not.toHaveBeenCalledWith(
+    '/api/v1/books/book-1',
+    expect.objectContaining({ method: 'DELETE' }),
+  )
 })
 
 test('opens the review area from the main navigation', async () => {

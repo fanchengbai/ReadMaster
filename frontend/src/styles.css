@@ -326,14 +326,29 @@ h1 {
   white-space: nowrap;
 }
 
-.book-info button {
-  align-self: start;
+.book-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
   margin-top: 18px;
+}
+
+.book-info .book-actions button {
+  margin: 0;
   padding: 9px 0;
   border: 0;
   color: #52655c;
   background: transparent;
   font-weight: 700;
+}
+
+.book-info .book-actions .remove-book-button {
+  color: #9a554b;
+  font-weight: 650;
+}
+
+.book-info .book-actions .remove-book-button:hover:not(:disabled) {
+  color: #773d35;
 }
 
 .book-progress {

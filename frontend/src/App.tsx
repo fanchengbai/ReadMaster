@@ -1,6 +1,6 @@
 import { type ChangeEvent, useEffect, useRef, useState } from 'react'
 
-import { type BookSummary, fetchBooks, importBook } from './api/books'
+import { type BookSummary, deleteBook, fetchBooks, importBook } from './api/books'
 import ReaderView from './ReaderView'
 import ReviewView from './ReviewView'
 import VocabularyView from './VocabularyView'
@@ -18,6 +18,7 @@ export default function App() {
   const [libraryStatus, setLibraryStatus] = useState<LibraryStatus>('loading')
   const [books, setBooks] = useState<BookSummary[]>([])
   const [isImporting, setIsImporting] = useState(false)
+  const [deletingBookId, setDeletingBookId] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [readingBookId, setReadingBookId] = useState<string | null>(null)
   const [view, setView] = useState<'library' | 'vocabulary' | 'review'>('library')
@@ -73,6 +74,25 @@ export default function App() {
       setNotice(error instanceof Error ? error.message : '导入失败，请稍后重试')
     } finally {
       setIsImporting(false)
+    }
+  }
+
+  async function handleRemoveBook(book: BookSummary) {
+    const confirmed = window.confirm(
+      `确定从书架移除《${book.title}》吗？\n\n书籍文件和阅读进度会被删除，已经保存的生词和原句仍会保留。`,
+    )
+    if (!confirmed) return
+
+    setDeletingBookId(book.id)
+    setNotice(null)
+    try {
+      await deleteBook(book.id)
+      setBooks((current) => current.filter((item) => item.id !== book.id))
+      setNotice(`《${book.title}》已从书架移除`)
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : '移除失败，请稍后重试')
+    } finally {
+      setDeletingBookId(null)
     }
   }
 
@@ -194,9 +214,20 @@ export default function App() {
                   <div className="book-progress" aria-label={`阅读进度 ${Math.round(book.progress_percentage)}%`}>
                     <span style={{ width: `${book.progress_percentage}%` }} />
                   </div>
-                  <button type="button" onClick={() => setReadingBookId(book.id)}>
-                    {book.progress_percentage > 0 ? '继续阅读' : '开始阅读'}
-                  </button>
+                  <div className="book-actions">
+                    <button type="button" onClick={() => setReadingBookId(book.id)}>
+                      {book.progress_percentage > 0 ? '继续阅读' : '开始阅读'}
+                    </button>
+                    <button
+                      className="remove-book-button"
+                      type="button"
+                      disabled={deletingBookId !== null}
+                      aria-label={`移除《${book.title}》`}
+                      onClick={() => handleRemoveBook(book)}
+                    >
+                      {deletingBookId === book.id ? '正在移除…' : '移除'}
+                    </button>
+                  </div>
                 </div>
               </article>
             ))}
