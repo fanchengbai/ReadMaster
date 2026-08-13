@@ -36,46 +36,35 @@ function Test-LocalPort {
     }
 }
 
-function Get-PnpmCommand {
-    $pnpm = Get-Command "pnpm.cmd" -ErrorAction SilentlyContinue
-    if (-not $pnpm) {
-        $pnpm = Get-Command "pnpm" -ErrorAction SilentlyContinue
+function Find-NodeExecutable {
+    $nodeCommand = Get-Command "node.exe" -ErrorAction SilentlyContinue
+    if ($nodeCommand) {
+        return $nodeCommand.Source
     }
-    if ($pnpm) {
-        return [pscustomobject]@{
-            FilePath = $pnpm.Source
-            Arguments = @("dev", "--host", "127.0.0.1")
+
+    $candidates = @(
+        (Join-Path $env:ProgramFiles "nodejs\node.exe"),
+        (Join-Path $env:LOCALAPPDATA "Programs\nodejs\node.exe"),
+        (Join-Path $env:USERPROFILE ".cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe")
+    )
+    foreach ($candidate in $candidates) {
+        if (Test-Path -LiteralPath $candidate) {
+            return $candidate
         }
     }
 
-    $corepack = Get-Command "corepack.cmd" -ErrorAction SilentlyContinue
-    if (-not $corepack) {
-        $corepack = Get-Command "corepack" -ErrorAction SilentlyContinue
-    }
-    if ($corepack) {
-        return [pscustomobject]@{
-            FilePath = $corepack.Source
-            Arguments = @("pnpm", "dev", "--host", "127.0.0.1")
-        }
-    }
-
-    throw "pnpm was not found. Install Node.js and pnpm first."
+    throw "node.exe was not found. Install Node.js 22 or newer and try again."
 }
 
-function Add-NodeToPath {
-    if (Get-Command "node.exe" -ErrorAction SilentlyContinue) {
-        return
+function Get-FrontendCommand {
+    $vitePath = Join-Path $frontendRoot "node_modules\vite\bin\vite.js"
+    if (-not (Test-Path -LiteralPath $vitePath)) {
+        throw "Vite was not found. Run 'pnpm install' in the frontend folder first."
     }
 
-    $pnpmCommand = Get-Command "pnpm.cmd" -ErrorAction SilentlyContinue
-    if (-not $pnpmCommand) {
-        return
-    }
-
-    $runtimeRoot = Split-Path (Split-Path (Split-Path $pnpmCommand.Source -Parent) -Parent) -Parent
-    $nodeDirectory = Join-Path $runtimeRoot "node\bin"
-    if (Test-Path -LiteralPath (Join-Path $nodeDirectory "node.exe")) {
-        $env:PATH = "$nodeDirectory;$env:PATH"
+    return [pscustomobject]@{
+        FilePath = Find-NodeExecutable
+        Arguments = @($vitePath, "--host", "127.0.0.1")
     }
 }
 
@@ -148,11 +137,7 @@ try {
         throw "Port 5173 is already in use. Stop the existing frontend service and try again."
     }
 
-    Add-NodeToPath
-    $pnpmCommand = Get-PnpmCommand
-    if (-not (Get-Command "node.exe" -ErrorAction SilentlyContinue)) {
-        throw "node.exe was not found. Install Node.js 22 or newer and try again."
-    }
+    $frontendCommand = Get-FrontendCommand
     Write-Host "Starting backend..." -ForegroundColor Green
     $backendProcess = Start-Process `
         -FilePath $pythonPath `
@@ -164,8 +149,8 @@ try {
 
     Write-Host "Starting frontend..." -ForegroundColor Green
     $frontendProcess = Start-Process `
-        -FilePath $pnpmCommand.FilePath `
-        -ArgumentList $pnpmCommand.Arguments `
+        -FilePath $frontendCommand.FilePath `
+        -ArgumentList $frontendCommand.Arguments `
         -WorkingDirectory $frontendRoot `
         -NoNewWindow `
         -PassThru
