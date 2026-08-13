@@ -1,0 +1,42 @@
+from datetime import datetime
+from typing import Literal
+
+from pydantic import BaseModel, Field
+
+QuestionType = Literal["context_fill", "meaning_choice"]
+
+
+class ReviewQuestion(BaseModel):
+    id: str
+    type: QuestionType
+    prompt: str
+    options: list[str]
+    source_book_title: str | None
+    source_chapter_title: str | None
+
+
+class ReviewSessionResponse(BaseModel):
+    questions: list[ReviewQuestion]
+    total_available: int
+
+
+class SubmitReviewRequest(BaseModel):
+    question_id: str
+    question_type: QuestionType
+    prompt: str = Field(min_length=1, max_length=5000)
+    answer: str = Field(min_length=1, max_length=128)
+
+
+class SubmitReviewResponse(BaseModel):
+    is_correct: bool
+    correct_answer: str
+    explanation: str
+    wrong_count: int
+    answered_at: datetime
+
+
+class ReviewStatsResponse(BaseModel):
+    total_attempts: int
+    correct_attempts: int
+    accuracy: float
+    words_practiced: int

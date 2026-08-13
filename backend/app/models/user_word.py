@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 if TYPE_CHECKING:
+    from app.models.review_attempt import ReviewAttempt
     from app.models.word import Word
     from app.models.word_occurrence import WordOccurrence
 
@@ -40,4 +41,8 @@ class UserWord(Base):
         back_populates="user_word",
         cascade="all, delete-orphan",
         order_by="WordOccurrence.created_at.desc()",
+    )
+    review_attempts: Mapped[list["ReviewAttempt"]] = relationship(
+        back_populates="user_word",
+        cascade="all, delete-orphan",
     )

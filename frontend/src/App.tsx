@@ -2,6 +2,7 @@ import { type ChangeEvent, useEffect, useRef, useState } from 'react'
 
 import { type BookSummary, fetchBooks, importBook } from './api/books'
 import ReaderView from './ReaderView'
+import ReviewView from './ReviewView'
 import VocabularyView from './VocabularyView'
 
 type ServiceStatus = 'checking' | 'ready' | 'offline'
@@ -19,7 +20,7 @@ export default function App() {
   const [isImporting, setIsImporting] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [readingBookId, setReadingBookId] = useState<string | null>(null)
-  const [view, setView] = useState<'library' | 'vocabulary'>('library')
+  const [view, setView] = useState<'library' | 'vocabulary' | 'review'>('library')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -103,6 +104,15 @@ export default function App() {
     return <VocabularyView onBack={() => setView('library')} />
   }
 
+  if (view === 'review') {
+    return (
+      <ReviewView
+        onBack={() => setView('library')}
+        onVocabulary={() => setView('vocabulary')}
+      />
+    )
+  }
+
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -115,6 +125,7 @@ export default function App() {
             书架
           </a>
           <button type="button" onClick={() => setView('vocabulary')}>生词</button>
+          <button type="button" onClick={() => setView('review')}>训练</button>
         </nav>
         <div className={`service-status service-status--${serviceStatus}`} role="status">
           <span aria-hidden="true" />

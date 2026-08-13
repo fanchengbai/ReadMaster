@@ -26,4 +26,5 @@ def test_migrations_create_current_schema(tmp_path: Path) -> None:
         "words",
         "user_words",
         "word_occurrences",
+        "review_attempts",
     } <= table_names

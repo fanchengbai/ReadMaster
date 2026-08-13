@@ -72,6 +72,24 @@ test('imports a selected EPUB file and adds it to the shelf', async () => {
   expect(screen.getByText('EPUB · 2 章')).toBeInTheDocument()
 })
 
+test('opens the review area from the main navigation', async () => {
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+    const url = String(input)
+    if (url.endsWith('/health')) return jsonResponse({ status: 'ok', database: 'ok' })
+    if (url.includes('/review/session')) return jsonResponse({ total_available: 0, questions: [] })
+    if (url.endsWith('/review/stats')) {
+      return jsonResponse({ total_attempts: 0, correct_attempts: 0, accuracy: 0, words_practiced: 0 })
+    }
+    return jsonResponse([])
+  })
+
+  render(<App />)
+  fireEvent.click(screen.getByRole('button', { name: '训练' }))
+
+  expect(await screen.findByRole('heading', { name: '词汇训练' })).toBeInTheDocument()
+  expect(await screen.findByRole('heading', { name: '还没有可以训练的生词' })).toBeInTheDocument()
+})
+
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
