@@ -1,6 +1,9 @@
 from io import BytesIO
 from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile
 
+from pypdf import PdfWriter
+from pypdf.generic import DictionaryObject, NameObject, StreamObject
+
 
 def create_minimal_epub() -> bytes:
     output = BytesIO()
@@ -64,3 +67,50 @@ def create_minimal_epub() -> bytes:
 </body></html>""",
         )
     return output.getvalue()
+
+
+def create_minimal_pdf() -> bytes:
+    writer = PdfWriter()
+    writer.add_metadata({"/Title": "Learning From PDF", "/Author": "Jane Reader"})
+    add_text_page(writer, "Curiosity makes reading active.\n\nContext gives words meaning.")
+    add_text_page(writer, "Practice turns recognition into understanding.")
+    output = BytesIO()
+    writer.write(output)
+    return output.getvalue()
+
+
+def create_image_only_pdf() -> bytes:
+    writer = PdfWriter()
+    writer.add_blank_page(width=612, height=792)
+    output = BytesIO()
+    writer.write(output)
+    return output.getvalue()
+
+
+def add_text_page(writer: PdfWriter, text: str) -> None:
+    page = writer.add_blank_page(width=612, height=792)
+    font = DictionaryObject(
+        {
+            NameObject("/Type"): NameObject("/Font"),
+            NameObject("/Subtype"): NameObject("/Type1"),
+            NameObject("/BaseFont"): NameObject("/Helvetica"),
+        }
+    )
+    font_ref = writer._add_object(font)
+    resources = DictionaryObject(
+        {
+            NameObject("/Font"): DictionaryObject({NameObject("/F1"): font_ref}),
+        }
+    )
+    page[NameObject("/Resources")] = resources
+    commands = ["BT /F1 14 Tf 72 720 Td"]
+    for index, line in enumerate(text.splitlines()):
+        if index:
+            commands.append("0 -24 Td")
+        if line:
+            escaped = line.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+            commands.append(f"({escaped}) Tj")
+    commands.append("ET")
+    stream = StreamObject()
+    stream.set_data("\n".join(commands).encode("ascii"))
+    page[NameObject("/Contents")] = writer._add_object(stream)

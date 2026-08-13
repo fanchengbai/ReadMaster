@@ -15,11 +15,12 @@ from app.schemas.book import (
     ParagraphResponse,
 )
 from app.services.epub_parser import MAX_EPUB_SIZE, ParsedEpub, parse_epub
+from app.services.pdf_parser import MAX_PDF_SIZE, ParsedPdf, parse_pdf
 from app.services.txt_parser import ParsedChapter, decode_txt, parse_txt
 
 MAX_TXT_SIZE = 10 * 1024 * 1024
-MAX_UPLOAD_SIZE = MAX_EPUB_SIZE
-SUPPORTED_EXTENSIONS = {".txt", ".epub"}
+MAX_UPLOAD_SIZE = max(MAX_EPUB_SIZE, MAX_PDF_SIZE)
+SUPPORTED_EXTENSIONS = {".txt", ".epub", ".pdf"}
 
 
 def import_book(
@@ -33,7 +34,7 @@ def import_book(
 ) -> BookDetail:
     extension = Path(filename).suffix.lower()
     if extension not in SUPPORTED_EXTENSIONS:
-        raise AppError("UNSUPPORTED_FILE_TYPE", "目前仅支持导入 TXT 和 EPUB 文件")
+        raise AppError("UNSUPPORTED_FILE_TYPE", "目前仅支持导入 TXT、EPUB 和 PDF 文件")
 
     file_hash = hashlib.sha256(payload).hexdigest()
     duplicate = session.scalar(select(Book.id).where(Book.file_hash == file_hash))
@@ -45,8 +46,13 @@ def import_book(
             payload,
             filename,
         )
-    else:
+    elif extension == ".epub":
         parsed_chapters, detected_title, detected_author, stored_payload = prepare_epub(
+            payload,
+            filename,
+        )
+    else:
+        parsed_chapters, detected_title, detected_author, stored_payload = prepare_pdf(
             payload,
             filename,
         )
@@ -107,6 +113,14 @@ def prepare_epub(
     filename: str,
 ) -> tuple[list[ParsedChapter], str, str | None, bytes]:
     parsed: ParsedEpub = parse_epub(payload)
+    return parsed.chapters, parsed.title or Path(filename).stem, parsed.author, payload
+
+
+def prepare_pdf(
+    payload: bytes,
+    filename: str,
+) -> tuple[list[ParsedChapter], str, str | None, bytes]:
+    parsed: ParsedPdf = parse_pdf(payload)
     return parsed.chapters, parsed.title or Path(filename).stem, parsed.author, payload
 
 

@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 
 from app.core.config import Settings
 from app.main import create_app
-from tests.helpers import create_minimal_epub
+from tests.helpers import create_minimal_epub, create_minimal_pdf
 
 SAMPLE_BOOK = b"""CHAPTER 1 Beginning
 
@@ -81,6 +81,29 @@ def test_import_epub_uses_embedded_metadata_and_navigation(tmp_path: Path) -> No
     stored_books = list((tmp_path / "books").glob("*.epub"))
     assert len(stored_books) == 1
     assert stored_books[0].read_bytes().startswith(b"PK")
+
+
+def test_import_pdf_uses_metadata_and_page_order(tmp_path: Path) -> None:
+    with create_test_client(tmp_path) as client:
+        response = client.post(
+            "/api/v1/books/import",
+            files={"file": ("learning.pdf", create_minimal_pdf(), "application/pdf")},
+        )
+
+        assert response.status_code == 201
+        imported = response.json()
+        assert imported["title"] == "Learning From PDF"
+        assert imported["author"] == "Jane Reader"
+        assert imported["format"] == "PDF"
+        assert imported["chapter_count"] == 2
+        assert imported["chapters"][0]["title"] == "第 1 页"
+
+        first_page = client.get(f"/api/v1/chapters/{imported['chapters'][0]['id']}").json()
+        assert first_page["paragraphs"][0]["content"] == "Curiosity makes reading active."
+
+    stored_books = list((tmp_path / "books").glob("*.pdf"))
+    assert len(stored_books) == 1
+    assert stored_books[0].read_bytes().startswith(b"%PDF-")
 
 
 def test_duplicate_book_returns_conflict(tmp_path: Path) -> None:

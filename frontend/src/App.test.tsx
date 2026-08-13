@@ -62,7 +62,7 @@ test('imports a selected EPUB file and adds it to the shelf', async () => {
   })
 
   render(<App />)
-  const input = screen.getByLabelText('选择 TXT 或 EPUB 文件')
+  const input = screen.getByLabelText('选择 TXT、EPUB 或 PDF 文件')
   const file = new File(['epub-content'], 'new-book.epub', { type: 'application/epub+zip' })
 
   fireEvent.change(input, { target: { files: [file] } })
@@ -70,6 +70,40 @@ test('imports a selected EPUB file and adds it to the shelf', async () => {
   expect(await screen.findByText('《New EPUB Book》导入成功')).toBeInTheDocument()
   expect(screen.getByRole('heading', { name: 'New EPUB Book' })).toBeInTheDocument()
   expect(screen.getByText('EPUB · 2 章')).toBeInTheDocument()
+})
+
+test('imports a selected PDF file and adds it to the shelf', async () => {
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+    const url = String(input)
+    if (url.endsWith('/health')) return jsonResponse({ status: 'ok', database: 'ok' })
+    if (url.endsWith('/books/import')) {
+      return jsonResponse(
+        {
+          id: 'book-pdf',
+          title: 'Reading From PDF',
+          author: 'PDF Reader',
+          source_filename: 'reading.pdf',
+          format: 'PDF',
+          chapter_count: 3,
+          progress_percentage: 0,
+          current_chapter_id: null,
+          created_at: '2026-08-13T00:00:00Z',
+          chapters: [],
+        },
+        201,
+      )
+    }
+    return jsonResponse([])
+  })
+
+  render(<App />)
+  const input = screen.getByLabelText('选择 TXT、EPUB 或 PDF 文件')
+  const file = new File(['%PDF-test'], 'reading.pdf', { type: 'application/pdf' })
+
+  fireEvent.change(input, { target: { files: [file] } })
+
+  expect(await screen.findByText('《Reading From PDF》导入成功')).toBeInTheDocument()
+  expect(screen.getByText('PDF · 3 章')).toBeInTheDocument()
 })
 
 test('opens the review area from the main navigation', async () => {

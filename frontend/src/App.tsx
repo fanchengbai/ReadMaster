@@ -57,8 +57,8 @@ export default function App() {
     if (!file) return
 
     const extension = file.name.toLowerCase().split('.').pop()
-    if (extension !== 'txt' && extension !== 'epub') {
-      setNotice('请选择 TXT 或 EPUB 格式的英文读物')
+    if (extension !== 'txt' && extension !== 'epub' && extension !== 'pdf') {
+      setNotice('请选择 TXT、EPUB 或 PDF 格式的英文读物')
       return
     }
 
@@ -151,8 +151,8 @@ export default function App() {
           ref={fileInputRef}
           className="visually-hidden"
           type="file"
-          accept=".txt,.epub,text/plain,application/epub+zip"
-          aria-label="选择 TXT 或 EPUB 文件"
+          accept=".txt,.epub,.pdf,text/plain,application/epub+zip,application/pdf"
+          aria-label="选择 TXT、EPUB 或 PDF 文件"
           onChange={handleFileChange}
         />
       </section>
@@ -167,7 +167,7 @@ export default function App() {
         {libraryStatus === 'ready' && books.length === 0 && (
           <LibraryMessage
             title="书架还是空的"
-            detail="导入第一本 TXT 或 EPUB 英文读物，ReadMaster 会自动整理章节和段落。"
+            detail="导入第一本 TXT、EPUB 或 PDF 英文读物，ReadMaster 会自动整理章节和段落。"
             action={
               <button type="button" onClick={() => fileInputRef.current?.click()}>
                 选择一本书

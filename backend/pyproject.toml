@@ -12,6 +12,7 @@ dependencies = [
     "charset-normalizer>=3.4,<4",
     "fastapi>=0.116,<1",
     "pydantic-settings>=2.10,<3",
+    "pypdf>=6.0,<7",
     "python-multipart>=0.0.20,<1",
     "sqlalchemy>=2.0,<3",
     "uvicorn[standard]>=0.35,<1",
@@ -37,4 +38,3 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
-

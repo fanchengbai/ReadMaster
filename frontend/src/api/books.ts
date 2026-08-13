@@ -10,7 +10,7 @@ export interface BookSummary {
   title: string
   author: string | null
   source_filename: string
-  format: 'TXT' | 'EPUB'
+  format: 'TXT' | 'EPUB' | 'PDF'
   chapter_count: number
   progress_percentage: number
   current_chapter_id: string | null
