@@ -26,6 +26,10 @@ class Settings(BaseSettings):
             return self.database_url
         return f"sqlite+pysqlite:///{(self.data_dir / 'readmaster.db').as_posix()}"
 
+    @property
+    def dictionary_database_path(self) -> Path:
+        return self.data_dir / "dictionaries" / "ecdict.db"
+
 
 @lru_cache
 def get_settings() -> Settings:

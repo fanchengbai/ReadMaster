@@ -3,7 +3,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import get_session
+from app.api.dependencies import get_app_settings, get_session
+from app.core.config import Settings
 from app.schemas.vocabulary import (
     DictionaryEntry,
     Familiarity,
@@ -26,16 +27,18 @@ router = APIRouter(tags=["vocabulary"])
 def dictionary_lookup_endpoint(
     word: str,
     session: Annotated[Session, Depends(get_session)],
+    settings: Annotated[Settings, Depends(get_app_settings)],
 ) -> DictionaryEntry:
-    return lookup_dictionary(session, word)
+    return lookup_dictionary(session, word, settings.dictionary_database_path)
 
 
 @router.post("/user-words", response_model=UserWordResponse, status_code=status.HTTP_201_CREATED)
 def save_user_word_endpoint(
     request: SaveUserWordRequest,
     session: Annotated[Session, Depends(get_session)],
+    settings: Annotated[Settings, Depends(get_app_settings)],
 ) -> UserWordResponse:
-    return save_user_word(session, request)
+    return save_user_word(session, request, settings.dictionary_database_path)
 
 
 @router.get("/user-words", response_model=list[UserWordResponse])

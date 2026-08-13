@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from pathlib import Path
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
@@ -18,9 +19,10 @@ from app.services.dictionary import dictionary_data, normalize_word
 def save_user_word(
     session: Session,
     request: SaveUserWordRequest,
+    dictionary_database_path: Path,
 ) -> UserWordResponse:
-    lemma = normalize_word(request.word)
-    if not lemma:
+    selected_lemma = normalize_word(request.word)
+    if not selected_lemma:
         raise AppError("INVALID_WORD", "请选择一个有效的英文单词")
 
     book = session.get(Book, request.book_id)
@@ -36,14 +38,29 @@ def save_user_word(
         raise AppError("INVALID_WORD_POSITION", "单词位置超出段落范围")
 
     selected_text = paragraph.content[request.char_start : request.char_end]
-    if normalize_word(selected_text) != lemma:
+    if normalize_word(selected_text) != selected_lemma:
         raise AppError("WORD_POSITION_MISMATCH", "单词与原文位置不匹配")
 
-    word = session.scalar(
-        select(Word).where(Word.lemma == lemma).options(selectinload(Word.user_word))
+    lemma, phonetic, definitions, provider = dictionary_data(
+        selected_lemma,
+        dictionary_database_path,
+    )
+    selected_word = session.scalar(
+        select(Word)
+        .where(Word.lemma == selected_lemma)
+        .options(selectinload(Word.user_word))
+    )
+    resolved_word = selected_word
+    if lemma != selected_lemma:
+        resolved_word = session.scalar(
+            select(Word).where(Word.lemma == lemma).options(selectinload(Word.user_word))
+        )
+    word = (
+        selected_word
+        if selected_word is not None and selected_word.user_word is not None
+        else resolved_word or selected_word
     )
     if word is None:
-        phonetic, definitions, provider = dictionary_data(lemma)
         word = Word(
             lemma=lemma,
             phonetic=phonetic,
@@ -52,6 +69,10 @@ def save_user_word(
         )
         session.add(word)
         session.flush()
+    elif definitions and word.provider != provider:
+        word.phonetic = phonetic
+        word.definitions = definitions
+        word.provider = provider
 
     user_word = word.user_word
     if user_word is None:
@@ -81,11 +102,9 @@ def list_user_words(
     session: Session,
     familiarity: str | None = None,
 ) -> list[UserWordResponse]:
-    query = (
-        select(UserWord)
-        .options(selectinload(UserWord.word), selectinload(UserWord.occurrences))
-        .order_by(UserWord.last_seen_at.desc())
-    )
+    query = select(UserWord).options(
+        selectinload(UserWord.word), selectinload(UserWord.occurrences)
+    ).order_by(UserWord.last_seen_at.desc())
     if familiarity:
         query = query.where(UserWord.familiarity == familiarity)
     return [to_user_word_response(item) for item in session.scalars(query).unique().all()]

@@ -1,11 +1,13 @@
 import re
 from dataclasses import dataclass
+from pathlib import Path
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import Word
 from app.schemas.vocabulary import Definition, DictionaryEntry
+from app.services.ecdict import PROVIDER_NAME, query_ecdict
 
 
 @dataclass(frozen=True)
@@ -48,10 +50,14 @@ def normalize_word(surface_form: str) -> str:
     return cleaned[:128]
 
 
-def lookup_dictionary(session: Session, surface_form: str) -> DictionaryEntry:
+def lookup_dictionary(
+    session: Session,
+    surface_form: str,
+    dictionary_database_path: Path,
+) -> DictionaryEntry:
     lemma = normalize_word(surface_form)
     cached = session.scalar(select(Word).where(Word.lemma == lemma)) if lemma else None
-    if cached is not None:
+    if cached is not None and cached.definitions:
         definitions = [Definition.model_validate(item) for item in cached.definitions or []]
         return DictionaryEntry(
             lemma=lemma,
@@ -61,6 +67,24 @@ def lookup_dictionary(session: Session, surface_form: str) -> DictionaryEntry:
             provider=cached.provider or "local",
             found=bool(definitions),
             saved=cached.user_word is not None,
+        )
+
+    ecdict_entry = query_ecdict(dictionary_database_path, lemma)
+    if ecdict_entry is not None:
+        resolved_cached = session.scalar(
+            select(Word).where(Word.lemma == ecdict_entry.lemma)
+        )
+        return DictionaryEntry(
+            lemma=ecdict_entry.lemma,
+            surface_form=surface_form,
+            phonetic=ecdict_entry.phonetic,
+            definitions=ecdict_entry.definitions,
+            provider=PROVIDER_NAME,
+            found=True,
+            saved=(
+                (resolved_cached is not None and resolved_cached.user_word is not None)
+                or (cached is not None and cached.user_word is not None)
+            ),
         )
 
     item = LOCAL_DICTIONARY.get(lemma)
@@ -80,11 +104,24 @@ def lookup_dictionary(session: Session, surface_form: str) -> DictionaryEntry:
     )
 
 
-def dictionary_data(lemma: str) -> tuple[str | None, list[dict[str, str]], str]:
+def dictionary_data(
+    word: str,
+    dictionary_database_path: Path,
+) -> tuple[str, str | None, list[dict[str, str]], str]:
+    ecdict_entry = query_ecdict(dictionary_database_path, word)
+    if ecdict_entry is not None:
+        return (
+            ecdict_entry.lemma,
+            ecdict_entry.phonetic,
+            [definition.model_dump() for definition in ecdict_entry.definitions],
+            PROVIDER_NAME,
+        )
+
+    lemma = normalize_word(word)
     item = LOCAL_DICTIONARY.get(lemma)
     if item is None:
-        return None, [], "local-basic"
+        return lemma, None, [], "local-basic"
     definitions = [
         {"part_of_speech": part, "meaning": meaning} for part, meaning in item.definitions
     ]
-    return item.phonetic, definitions, "local-basic"
+    return lemma, item.phonetic, definitions, "local-basic"
