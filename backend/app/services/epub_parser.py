@@ -10,9 +10,9 @@ from zipfile import BadZipFile, ZipFile
 from app.core.errors import AppError
 from app.services.txt_parser import ParsedChapter
 
-MAX_EPUB_SIZE = 50 * 1024 * 1024
+MAX_EPUB_SIZE = 200 * 1024 * 1024
 MAX_UNCOMPRESSED_SIZE = 200 * 1024 * 1024
-MAX_ARCHIVE_ENTRIES = 5000
+MAX_ARCHIVE_ENTRIES = 10_000
 CONTAINER_NAMESPACE = "urn:oasis:names:tc:opendocument:xmlns:container"
 DC_NAMESPACE = "http://purl.org/dc/elements/1.1/"
 
@@ -36,7 +36,7 @@ def parse_epub(payload: bytes) -> ParsedEpub:
     if not payload:
         raise AppError("EMPTY_FILE", "EPUB 文件内容为空")
     if len(payload) > MAX_EPUB_SIZE:
-        raise AppError("FILE_TOO_LARGE", "EPUB 文件不能超过 50 MB", status_code=413)
+        raise AppError("FILE_TOO_LARGE", "EPUB 文件不能超过 200 MB", status_code=413)
 
     try:
         with ZipFile(BytesIO(payload)) as archive:
