@@ -108,6 +108,43 @@ test('stores reader display settings locally', async () => {
   expect(localStorage.getItem('readmaster.reader-settings')).toContain('"theme":"night"')
 })
 
+test('shows a button that hides and restores Chinese translations', async () => {
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+    const url = String(input)
+    if (url.endsWith('/books/book-1')) return jsonResponse(book)
+    if (url.endsWith('/progress')) {
+      return jsonResponse({
+        book_id: 'book-1',
+        chapter_id: 'chapter-1',
+        paragraph_id: null,
+        percentage: 0,
+        updated_at: null,
+      })
+    }
+    return jsonResponse({
+      ...book.chapters[0],
+      book_id: 'book-1',
+      paragraphs: [
+        { id: 'paragraph-1', order_index: 0, content: 'Reading starts here.' },
+        { id: 'paragraph-2', order_index: 1, content: '阅读从这里开始。' },
+      ],
+    })
+  })
+
+  render(<ReaderView bookId="book-1" onClose={vi.fn()} onProgressChange={vi.fn()} />)
+
+  expect(await screen.findByText('阅读从这里开始。')).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: '隐藏中文' }))
+
+  expect(screen.queryByText('阅读从这里开始。')).not.toBeInTheDocument()
+  expect(screen.getByText('Reading')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: '显示中文' })).toBeInTheDocument()
+  expect(localStorage.getItem('readmaster.reader-settings')).toContain('"showChinese":false')
+
+  fireEvent.click(screen.getByRole('button', { name: '显示中文' }))
+  expect(screen.getByText('阅读从这里开始。')).toBeInTheDocument()
+})
+
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,

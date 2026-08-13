@@ -462,7 +462,22 @@ h1 {
 .reader-actions {
   display: flex;
   justify-self: end;
+  align-items: center;
   gap: 18px;
+}
+
+.reader-actions .translation-toggle {
+  padding: 8px 13px;
+  border: 1px solid rgb(42 69 57 / 20%);
+  border-radius: 999px;
+  color: #2c6049;
+  background: rgb(255 255 255 / 42%);
+}
+
+.reader-screen--night .reader-actions .translation-toggle {
+  border-color: rgb(220 232 225 / 18%);
+  color: #b9d7c8;
+  background: rgb(255 255 255 / 5%);
 }
 
 .reader-progress {
@@ -651,6 +666,17 @@ h1 {
   font-family: Georgia, "Noto Serif", serif;
   font-size: var(--reader-font-size);
   line-height: var(--reader-line-height);
+}
+
+.reading-article > .reader-translation {
+  margin-top: -0.85em;
+  color: #68776f;
+  font-family: "Noto Serif SC", "Microsoft YaHei", sans-serif;
+  font-size: calc(var(--reader-font-size) * 0.88);
+}
+
+.reader-screen--night .reading-article > .reader-translation {
+  color: #a8b4ad;
 }
 
 .reader-word {

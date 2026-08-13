@@ -5,6 +5,7 @@ export interface ReaderSettings {
   lineHeight: number
   contentWidth: number
   theme: ReaderTheme
+  showChinese: boolean
 }
 
 export const defaultReaderSettings: ReaderSettings = {
@@ -12,6 +13,7 @@ export const defaultReaderSettings: ReaderSettings = {
   lineHeight: 1.85,
   contentWidth: 760,
   theme: 'paper',
+  showChinese: true,
 }
 
 const storageKey = 'readmaster.reader-settings'
@@ -26,6 +28,7 @@ export function loadReaderSettings(): ReaderSettings {
       lineHeight: clampNumber(parsed.lineHeight, 1.4, 2.4, defaultReaderSettings.lineHeight),
       contentWidth: clampNumber(parsed.contentWidth, 600, 1000, defaultReaderSettings.contentWidth),
       theme: parsed.theme === 'night' ? 'night' : 'paper',
+      showChinese: parsed.showChinese !== false,
     }
   } catch {
     return defaultReaderSettings

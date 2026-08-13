@@ -122,6 +122,9 @@ export default function ReaderView({ bookId, onClose, onProgressChange }: Reader
     chapter && chapter.paragraphs.length > 0 && paragraphIndex >= 0
       ? (paragraphIndex + 1) / chapter.paragraphs.length
       : 0
+  const chapterHasChinese = chapter?.paragraphs.some((paragraph) =>
+    containsChinese(paragraph.content),
+  ) ?? false
   const percentage =
     book && activeIndex >= 0
       ? ((activeIndex + paragraphFraction) / book.chapters.length) * 100
@@ -176,6 +179,16 @@ export default function ReaderView({ bookId, onClose, onProgressChange }: Reader
           <span>{chapter?.title || '正在读取章节'}</span>
         </div>
         <div className="reader-actions">
+          {chapterHasChinese && (
+            <button
+              className="translation-toggle"
+              type="button"
+              aria-pressed={!settings.showChinese}
+              onClick={() => updateSettings({ showChinese: !settings.showChinese })}
+            >
+              {settings.showChinese ? '隐藏中文' : '显示中文'}
+            </button>
+          )}
           <button type="button" onClick={() => setContentsOpen((open) => !open)}>
             目录
           </button>
@@ -275,21 +288,31 @@ export default function ReaderView({ bookId, onClose, onProgressChange }: Reader
                 Chapter {String(chapter.order_index + 1).padStart(2, '0')}
               </div>
               <h1>{chapter.title}</h1>
-              {chapter.paragraphs.map((paragraph) => (
-                <p
-                  id={`paragraph-${paragraph.id}`}
-                  key={paragraph.id}
-                  data-paragraph-id={paragraph.id}
-                >
-                  <ClickableParagraph
-                    bookId={bookId}
-                    chapterId={chapter.id}
-                    paragraphId={paragraph.id}
-                    content={paragraph.content}
-                    onWordClick={setSelectedWord}
-                  />
-                </p>
-              ))}
+              {chapter.paragraphs.map((paragraph) => {
+                const isChinese = containsChinese(paragraph.content)
+                if (isChinese && !settings.showChinese) return null
+
+                return (
+                  <p
+                    className={isChinese ? 'reader-translation' : undefined}
+                    id={`paragraph-${paragraph.id}`}
+                    key={paragraph.id}
+                    data-paragraph-id={paragraph.id}
+                  >
+                    {isChinese ? (
+                      paragraph.content
+                    ) : (
+                      <ClickableParagraph
+                        bookId={bookId}
+                        chapterId={chapter.id}
+                        paragraphId={paragraph.id}
+                        content={paragraph.content}
+                        onWordClick={setSelectedWord}
+                      />
+                    )}
+                  </p>
+                )
+              })}
               <nav className="chapter-navigation" aria-label="章节切换">
                 <button
                   type="button"
@@ -324,4 +347,8 @@ export default function ReaderView({ bookId, onClose, onProgressChange }: Reader
       </div>
     </div>
   )
+}
+
+function containsChinese(content: string): boolean {
+  return /[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/u.test(content)
 }
