@@ -54,6 +54,10 @@ class UserWordResponse(BaseModel):
     familiarity: Familiarity
     encounter_count: int
     wrong_count: int
+    review_stage: int
+    consecutive_correct: int
+    next_review_at: datetime
+    last_reviewed_at: datetime | None
     note: str | None
     first_seen_at: datetime
     last_seen_at: datetime

@@ -1189,6 +1189,18 @@ h1 {
   line-height: 1.7;
 }
 
+.review-done-mark {
+  display: grid;
+  width: 62px;
+  height: 62px;
+  margin: 0 auto 24px;
+  place-items: center;
+  border-radius: 50%;
+  color: #eef6f1;
+  background: #3c7257;
+  font-size: 28px;
+}
+
 .review-finished > span {
   display: grid;
   width: 62px;

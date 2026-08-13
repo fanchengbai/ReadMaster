@@ -140,6 +140,10 @@ def to_user_word_response(user_word: UserWord) -> UserWordResponse:
         familiarity=user_word.familiarity,  # type: ignore[arg-type]
         encounter_count=user_word.encounter_count,
         wrong_count=user_word.wrong_count,
+        review_stage=user_word.review_stage,
+        consecutive_correct=user_word.consecutive_correct,
+        next_review_at=user_word.next_review_at,
+        last_reviewed_at=user_word.last_reviewed_at,
         note=user_word.note,
         first_seen_at=user_word.first_seen_at,
         last_seen_at=user_word.last_seen_at,

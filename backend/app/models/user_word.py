@@ -33,6 +33,17 @@ class UserWord(Base):
     familiarity: Mapped[str] = mapped_column(String(24), default="new", index=True)
     encounter_count: Mapped[int] = mapped_column(Integer, default=1)
     wrong_count: Mapped[int] = mapped_column(Integer, default=0)
+    review_stage: Mapped[int] = mapped_column(Integer, default=0)
+    consecutive_correct: Mapped[int] = mapped_column(Integer, default=0)
+    next_review_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+        index=True,
+    )
+    last_reviewed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)

@@ -13,7 +13,9 @@ def test_migrations_create_current_schema(tmp_path: Path) -> None:
 
     engine = create_engine(database_url)
     try:
-        table_names = set(inspect(engine).get_table_names())
+        inspector = inspect(engine)
+        table_names = set(inspector.get_table_names())
+        user_word_columns = {column["name"] for column in inspector.get_columns("user_words")}
     finally:
         engine.dispose()
 
@@ -28,3 +30,9 @@ def test_migrations_create_current_schema(tmp_path: Path) -> None:
         "word_occurrences",
         "review_attempts",
     } <= table_names
+    assert {
+        "review_stage",
+        "consecutive_correct",
+        "next_review_at",
+        "last_reviewed_at",
+    } <= user_word_columns

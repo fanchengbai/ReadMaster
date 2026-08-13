@@ -18,6 +18,9 @@ class ReviewQuestion(BaseModel):
 class ReviewSessionResponse(BaseModel):
     questions: list[ReviewQuestion]
     total_available: int
+    due_count: int
+    scheduled_count: int
+    next_review_at: datetime | None
 
 
 class SubmitReviewRequest(BaseModel):
@@ -32,6 +35,8 @@ class SubmitReviewResponse(BaseModel):
     correct_answer: str
     explanation: str
     wrong_count: int
+    review_stage: int
+    next_review_at: datetime
     answered_at: datetime
 
 
@@ -40,3 +45,6 @@ class ReviewStatsResponse(BaseModel):
     correct_attempts: int
     accuracy: float
     words_practiced: int
+    due_count: int
+    scheduled_count: int
+    next_review_at: datetime | None

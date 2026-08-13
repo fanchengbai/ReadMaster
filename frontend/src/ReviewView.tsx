@@ -19,6 +19,9 @@ const emptyStats: ReviewStats = {
   correct_attempts: 0,
   accuracy: 0,
   words_practiced: 0,
+  due_count: 0,
+  scheduled_count: 0,
+  next_review_at: null,
 }
 
 export default function ReviewView({ onBack, onVocabulary }: ReviewViewProps) {
@@ -28,6 +31,7 @@ export default function ReviewView({ onBack, onVocabulary }: ReviewViewProps) {
   const [answer, setAnswer] = useState('')
   const [result, setResult] = useState<ReviewResult | null>(null)
   const [correctInSession, setCorrectInSession] = useState(0)
+  const [scheduledDates, setScheduledDates] = useState<string[]>([])
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [message, setMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -56,11 +60,15 @@ export default function ReviewView({ onBack, onVocabulary }: ReviewViewProps) {
     try {
       const reviewed = await submitReviewAnswer(question, answer)
       setResult(reviewed)
+      setScheduledDates((current) => [...current, reviewed.next_review_at])
       if (reviewed.is_correct) setCorrectInSession((current) => current + 1)
       setStats((current) => ({
         total_attempts: current.total_attempts + 1,
         correct_attempts: current.correct_attempts + (reviewed.is_correct ? 1 : 0),
         words_practiced: current.words_practiced,
+        due_count: Math.max(0, current.due_count - 1),
+        scheduled_count: current.scheduled_count + 1,
+        next_review_at: earliestDate(current.next_review_at, reviewed.next_review_at),
         accuracy: Math.round(
           ((current.correct_attempts + (reviewed.is_correct ? 1 : 0)) /
             (current.total_attempts + 1)) * 1000,
@@ -80,13 +88,6 @@ export default function ReviewView({ onBack, onVocabulary }: ReviewViewProps) {
     setMessage('')
   }
 
-  function restart() {
-    setIndex(0)
-    setAnswer('')
-    setResult(null)
-    setCorrectInSession(0)
-  }
-
   return (
     <main className="review-screen">
       <header className="vocabulary-topbar">
@@ -100,7 +101,7 @@ export default function ReviewView({ onBack, onVocabulary }: ReviewViewProps) {
           <p>把阅读时遇见的词，放回真实语境里重新理解。</p>
         </div>
         <div className="review-stats" aria-label="训练统计">
-          <div><strong>{stats.total_attempts}</strong><span>累计作答</span></div>
+          <div><strong>{stats.due_count}</strong><span>今日待复习</span></div>
           <div><strong>{stats.accuracy}%</strong><span>正确率</span></div>
         </div>
       </section>
@@ -108,12 +109,25 @@ export default function ReviewView({ onBack, onVocabulary }: ReviewViewProps) {
       {message && <div className="notice">{message}</div>}
       {status === 'loading' && <div className="review-empty">正在从生词库准备题目…</div>}
       {status === 'error' && <div className="review-empty">{message}</div>}
-      {status === 'ready' && session?.questions.length === 0 && (
+      {status === 'ready' && session?.questions.length === 0 && session.total_available === 0 && (
         <section className="review-empty">
           <div>
             <h2>还没有可以训练的生词</h2>
             <p>阅读时点击不熟悉的单词并保存，题目就会从原句中自动生成。</p>
             <button type="button" onClick={onVocabulary}>查看生词库</button>
+          </div>
+        </section>
+      )}
+      {status === 'ready' && session?.questions.length === 0 && session.total_available > 0 && (
+        <section className="review-empty review-empty--scheduled">
+          <div>
+            <span className="review-done-mark" aria-hidden="true">✓</span>
+            <h2>今天的复习已完成</h2>
+            <p>
+              {session.scheduled_count} 个生词正在复习计划中。
+              {session.next_review_at && ` 最近一次复习安排在 ${formatReviewTime(session.next_review_at)}。`}
+            </p>
+            <button type="button" onClick={onBack}>返回书架</button>
           </div>
         </section>
       )}
@@ -181,12 +195,33 @@ export default function ReviewView({ onBack, onVocabulary }: ReviewViewProps) {
           <p className="eyebrow">Session Complete</p>
           <h2>本轮训练完成</h2>
           <p>共完成 {session.questions.length} 题，答对 {correctInSession} 题。</p>
+          {scheduledDates.length > 0 && (
+            <p>最近一项将在 {formatReviewTime(earliestScheduledDate(scheduledDates))} 再次复习。</p>
+          )}
           <div>
-            <button type="button" onClick={restart}>再练一轮</button>
+            <button type="button" onClick={onBack}>返回书架</button>
             <button type="button" onClick={onVocabulary}>查看生词库</button>
           </div>
         </section>
       )}
     </main>
   )
+}
+
+function earliestDate(current: string | null, candidate: string): string {
+  if (!current) return candidate
+  return new Date(current) <= new Date(candidate) ? current : candidate
+}
+
+function earliestScheduledDate(values: string[]): string {
+  return values.reduce((earliest, value) => earliestDate(earliest, value), null as string | null)!
+}
+
+function formatReviewTime(value: string): string {
+  return new Intl.DateTimeFormat('zh-CN', {
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value))
 }

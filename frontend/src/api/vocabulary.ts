@@ -34,6 +34,10 @@ export interface UserWord {
   familiarity: Familiarity
   encounter_count: number
   wrong_count: number
+  review_stage: number
+  consecutive_correct: number
+  next_review_at: string
+  last_reviewed_at: string | null
   note: string | null
   first_seen_at: string
   last_seen_at: string

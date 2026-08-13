@@ -12,6 +12,9 @@ export interface ReviewQuestion {
 export interface ReviewSession {
   questions: ReviewQuestion[]
   total_available: number
+  due_count: number
+  scheduled_count: number
+  next_review_at: string | null
 }
 
 export interface ReviewResult {
@@ -19,6 +22,8 @@ export interface ReviewResult {
   correct_answer: string
   explanation: string
   wrong_count: number
+  review_stage: number
+  next_review_at: string
   answered_at: string
 }
 
@@ -27,6 +32,9 @@ export interface ReviewStats {
   correct_attempts: number
   accuracy: number
   words_practiced: number
+  due_count: number
+  scheduled_count: number
+  next_review_at: string | null
 }
 
 export async function fetchReviewSession(limit = 10): Promise<ReviewSession> {

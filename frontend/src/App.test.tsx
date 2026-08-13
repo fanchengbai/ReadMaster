@@ -76,9 +76,25 @@ test('opens the review area from the main navigation', async () => {
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
     const url = String(input)
     if (url.endsWith('/health')) return jsonResponse({ status: 'ok', database: 'ok' })
-    if (url.includes('/review/session')) return jsonResponse({ total_available: 0, questions: [] })
+    if (url.includes('/review/session')) {
+      return jsonResponse({
+        total_available: 0,
+        due_count: 0,
+        scheduled_count: 0,
+        next_review_at: null,
+        questions: [],
+      })
+    }
     if (url.endsWith('/review/stats')) {
-      return jsonResponse({ total_attempts: 0, correct_attempts: 0, accuracy: 0, words_practiced: 0 })
+      return jsonResponse({
+        total_attempts: 0,
+        correct_attempts: 0,
+        accuracy: 0,
+        words_practiced: 0,
+        due_count: 0,
+        scheduled_count: 0,
+        next_review_at: null,
+      })
     }
     return jsonResponse([])
   })

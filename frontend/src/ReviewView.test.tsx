@@ -14,6 +14,9 @@ test('submits a context answer and completes the review session', async () => {
     if (url.includes('/review/session')) {
       return jsonResponse({
         total_available: 1,
+        due_count: 1,
+        scheduled_count: 0,
+        next_review_at: null,
         questions: [{
           id: 'word-1',
           type: 'context_fill',
@@ -25,7 +28,15 @@ test('submits a context answer and completes the review session', async () => {
       })
     }
     if (url.endsWith('/review/stats')) {
-      return jsonResponse({ total_attempts: 2, correct_attempts: 1, accuracy: 50, words_practiced: 1 })
+      return jsonResponse({
+        total_attempts: 2,
+        correct_attempts: 1,
+        accuracy: 50,
+        words_practiced: 1,
+        due_count: 1,
+        scheduled_count: 0,
+        next_review_at: null,
+      })
     }
     if (url.endsWith('/review/answer') && init?.method === 'POST') {
       return jsonResponse({
@@ -33,6 +44,8 @@ test('submits a context answer and completes the review session', async () => {
         correct_answer: 'curiosity',
         explanation: '回答正确，已经完成这次巩固。',
         wrong_count: 0,
+        review_stage: 1,
+        next_review_at: '2026-08-14T00:00:00Z',
         answered_at: '2026-08-13T00:00:00Z',
       })
     }
@@ -60,9 +73,23 @@ test('guides the reader to save words when no questions exist', async () => {
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
     const url = String(input)
     if (url.includes('/review/session')) {
-      return jsonResponse({ total_available: 0, questions: [] })
+      return jsonResponse({
+        total_available: 0,
+        due_count: 0,
+        scheduled_count: 0,
+        next_review_at: null,
+        questions: [],
+      })
     }
-    return jsonResponse({ total_attempts: 0, correct_attempts: 0, accuracy: 0, words_practiced: 0 })
+    return jsonResponse({
+      total_attempts: 0,
+      correct_attempts: 0,
+      accuracy: 0,
+      words_practiced: 0,
+      due_count: 0,
+      scheduled_count: 0,
+      next_review_at: null,
+    })
   })
   const onVocabulary = vi.fn()
 
@@ -71,6 +98,35 @@ test('guides the reader to save words when no questions exist', async () => {
   expect(await screen.findByRole('heading', { name: '还没有可以训练的生词' })).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: '查看生词库' }))
   expect(onVocabulary).toHaveBeenCalledOnce()
+})
+
+test('shows the next scheduled time when nothing is due today', async () => {
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+    const url = String(input)
+    if (url.includes('/review/session')) {
+      return jsonResponse({
+        total_available: 2,
+        due_count: 0,
+        scheduled_count: 2,
+        next_review_at: '2026-08-14T08:00:00Z',
+        questions: [],
+      })
+    }
+    return jsonResponse({
+      total_attempts: 3,
+      correct_attempts: 2,
+      accuracy: 66.7,
+      words_practiced: 2,
+      due_count: 0,
+      scheduled_count: 2,
+      next_review_at: '2026-08-14T08:00:00Z',
+    })
+  })
+
+  render(<ReviewView onBack={vi.fn()} onVocabulary={vi.fn()} />)
+
+  expect(await screen.findByRole('heading', { name: '今天的复习已完成' })).toBeInTheDocument()
+  expect(screen.getByText(/2 个生词正在复习计划中/)).toBeInTheDocument()
 })
 
 function jsonResponse(body: unknown, status = 200): Response {
