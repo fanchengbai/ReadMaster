@@ -208,6 +208,30 @@ PDF 当前使用文件自身的文本层，不包含 OCR。纯扫描图片 PDF �
 
 ## 本地开发
 
+### 一键启动
+
+已经完成首次依赖安装后，在项目根目录执行：
+
+```powershell
+.\start.ps1
+```
+
+脚本会在当前窗口同时启动前端和后端，等待服务就绪后自动打开 ReadMaster。按 Enter 或 `Ctrl+C` 可停止本次启动的两个服务。
+
+在 Windows 资源管理器中，也可以直接双击项目根目录的 `start.bat`，不需要手动输入命令。
+
+如果 PowerShell 阻止脚本运行，可以仅为本次启动放行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\start.ps1
+```
+
+不自动打开浏览器：
+
+```powershell
+.\start.ps1 -NoBrowser
+```
+
 ### 环境要求
 
 - Python 3.12+
