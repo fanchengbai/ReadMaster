@@ -113,7 +113,14 @@ def request_lesson_data(course_id: int, lesson_id: int, retries: int = 3) -> Any
             return decrypt_payload(data) if envelope.get("IsDecode") == 1 else data
         except CrawlError:
             raise
-        except (HTTPError, URLError, TimeoutError, json.JSONDecodeError) as error:
+        except (
+            HTTPError,
+            URLError,
+            TimeoutError,
+            ConnectionError,
+            OSError,
+            json.JSONDecodeError,
+        ) as error:
             last_error = error
             if attempt + 1 < retries:
                 time.sleep(1.5 * (attempt + 1))

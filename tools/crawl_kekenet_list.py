@@ -11,12 +11,14 @@ r"""从地址列表批量抓取可可英语中英内容，并合并生成一个 
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import sys
 import time
 from pathlib import Path
+from typing import TextIO
 
-from crawl_kekenet import LESSON_URL, CrawlError, Lesson, fetch_lesson, render_lessons
+from crawl_kekenet import LESSON_URL, CrawlError, Lesson, fetch_lesson
 
 INVALID_FILENAME = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
 
@@ -57,9 +59,25 @@ def normalize_output_name(value: str) -> str:
     return name
 
 
-def download_urls(urls: list[str], delay: float) -> tuple[list[Lesson], int]:
-    lessons: list[Lesson] = []
+def write_lesson(output: TextIO, chapter_number: int, lesson: Lesson) -> None:
+    output.write(f"Chapter {chapter_number} - {lesson.title}\n\n")
+    for line in lesson.lines:
+        if line.english:
+            output.write(f"{line.english}\n\n")
+        if line.chinese:
+            output.write(f"{line.chinese}\n\n")
+    output.flush()
+    os.fsync(output.fileno())
+
+
+def download_urls(
+    urls: list[str],
+    delay: float,
+    output: TextIO,
+) -> tuple[int, int, int]:
+    succeeded = 0
     failed = 0
+    pair_count = 0
     for position, url in enumerate(urls, start=1):
         match = LESSON_URL.fullmatch(url)
         if match is None:
@@ -68,14 +86,16 @@ def download_urls(urls: list[str], delay: float) -> tuple[list[Lesson], int]:
         course_id, lesson_id = map(int, match.groups())
         try:
             lesson = fetch_lesson(course_id, lesson_id)
-            lessons.append(lesson)
-            print(f"[{position}/{len(urls)}] 成功：{lesson_id} {lesson.title}")
+            succeeded += 1
+            pair_count += len(lesson.lines)
+            write_lesson(output, succeeded, lesson)
+            print(f"[{position}/{len(urls)}] 已写入：{lesson_id} {lesson.title}")
         except CrawlError as error:
             failed += 1
             print(f"[{position}/{len(urls)}] 失败：{url}（{error}）")
         if position < len(urls):
             time.sleep(delay)
-    return lessons, failed
+    return succeeded, failed, pair_count
 
 
 def parse_args() -> argparse.Namespace:
@@ -105,15 +125,14 @@ def main() -> int:
             raise CrawlError("请求间隔不能小于 0.2 秒")
         urls = read_urls(args.list_file)
         output_name = normalize_output_name(args.output_name)
-        lessons, failed = download_urls(urls, args.delay)
-        if not lessons:
-            raise CrawlError("列表中的网页全部下载失败，没有生成 TXT")
-
         args.output_dir.mkdir(parents=True, exist_ok=True)
         output = args.output_dir / output_name
-        output.write_text(render_lessons(lessons), encoding="utf-8")
-        pair_count = sum(len(lesson.lines) for lesson in lessons)
-        print(f"完成：成功 {len(lessons)} 页，失败 {failed} 页，共 {pair_count} 组中英对照")
+        with output.open("w", encoding="utf-8", newline="\n") as output_file:
+            succeeded, failed, pair_count = download_urls(urls, args.delay, output_file)
+        if not succeeded:
+            raise CrawlError("列表中的网页全部下载失败，TXT 文件为空")
+
+        print(f"完成：成功 {succeeded} 页，失败 {failed} 页，共 {pair_count} 组中英对照")
         print(f"文件：{output.resolve()}")
         return 0
     except CrawlError as error:
