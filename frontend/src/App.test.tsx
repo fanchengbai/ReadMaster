@@ -204,7 +204,7 @@ test('opens the review area from the main navigation', async () => {
   render(<App />)
   fireEvent.click(screen.getByRole('button', { name: '训练' }))
 
-  expect(await screen.findByRole('heading', { name: '词汇训练' })).toBeInTheDocument()
+  expect(await screen.findByRole('heading', { name: '词汇闯关' })).toBeInTheDocument()
   expect(await screen.findByRole('heading', { name: '还没有可以训练的生词' })).toBeInTheDocument()
 })
 

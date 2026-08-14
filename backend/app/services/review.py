@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session, selectinload
 from app.core.errors import AppError
 from app.models import ReviewAttempt, UserWord
 from app.schemas.review import (
+    CompleteGateReviewRequest,
+    CompleteGateReviewResponse,
     ReviewQuestion,
     ReviewSessionResponse,
     ReviewStatsResponse,
@@ -38,6 +40,8 @@ def create_review_session(session: Session, limit: int = 10) -> ReviewSessionRes
 
     for index, user_word in enumerate(user_words[:limit]):
         latest = user_word.occurrences[0] if user_word.occurrences else None
+        context = latest.context if latest else f"Complete the word: {user_word.word.lemma}"
+        meanings = [item["meaning"] for item in user_word.word.definitions]
         use_meaning = index % 2 == 1 and user_word.word.definitions and len(set(meaning_pool)) >= 4
         if use_meaning:
             correct = user_word.word.definitions[0]["meaning"]
@@ -50,17 +54,24 @@ def create_review_session(session: Session, limit: int = 10) -> ReviewSessionRes
                 type="meaning_choice",
                 prompt=f'“{user_word.word.lemma}”最符合下面哪个释义？',
                 options=options,
+                lemma=user_word.word.lemma,
+                phonetic=user_word.word.phonetic,
+                meanings=meanings,
+                context=context,
                 source_book_title=latest.source_book_title if latest else None,
                 source_chapter_title=latest.source_chapter_title if latest else None,
             )
         else:
-            context = latest.context if latest else f"Complete the word: {user_word.word.lemma}"
             prompt = mask_word(context, user_word.word.lemma)
             question = ReviewQuestion(
                 id=user_word.id,
                 type="context_fill",
                 prompt=prompt,
                 options=[],
+                lemma=user_word.word.lemma,
+                phonetic=user_word.word.phonetic,
+                meanings=meanings,
+                context=context,
                 source_book_title=latest.source_book_title if latest else None,
                 source_chapter_title=latest.source_chapter_title if latest else None,
             )
@@ -132,6 +143,71 @@ def submit_review(session: Session, request: SubmitReviewRequest) -> SubmitRevie
         review_stage=user_word.review_stage,
         next_review_at=user_word.next_review_at,
         answered_at=attempted_at,
+    )
+
+
+def complete_gate_review(
+    session: Session,
+    request: CompleteGateReviewRequest,
+) -> CompleteGateReviewResponse:
+    item_ids = [item.question_id for item in request.items]
+    if len(set(item_ids)) != len(item_ids):
+        raise AppError("DUPLICATE_REVIEW_WORD", "训练结果中包含重复生词")
+
+    user_words = session.scalars(
+        select(UserWord)
+        .where(UserWord.id.in_(item_ids))
+        .options(selectinload(UserWord.word))
+    ).all()
+    words_by_id = {item.id: item for item in user_words}
+    missing = [item_id for item_id in item_ids if item_id not in words_by_id]
+    if missing:
+        raise AppError("REVIEW_WORD_NOT_FOUND", "训练结果中的生词已不存在", status_code=404)
+
+    completed_at = datetime.now(UTC)
+    repaired_count = 0
+    next_dates: list[datetime] = []
+    for item in request.items:
+        user_word = words_by_id[item.question_id]
+        correct_answer = user_word.word.lemma
+        if item.mistake_count:
+            repaired_count += 1
+            user_word.wrong_count += item.mistake_count
+            session.add(
+                ReviewAttempt(
+                    user_word=user_word,
+                    question_type="five_gate",
+                    prompt_snapshot="五关训练中的错词修正",
+                    correct_answer=correct_answer,
+                    submitted_answer=f"修正 {item.mistake_count} 次后通过",
+                    is_correct=False,
+                    created_at=completed_at,
+                )
+            )
+
+        user_word.review_stage = min(user_word.review_stage + 1, len(REVIEW_INTERVAL_DAYS))
+        user_word.consecutive_correct += 1
+        interval_days = REVIEW_INTERVAL_DAYS[user_word.review_stage - 1]
+        user_word.next_review_at = completed_at + timedelta(days=interval_days)
+        user_word.last_reviewed_at = completed_at
+        next_dates.append(user_word.next_review_at)
+        session.add(
+            ReviewAttempt(
+                user_word=user_word,
+                question_type="five_gate",
+                prompt_snapshot="完成认词、辨义、语境、拼写和回想五关",
+                correct_answer=correct_answer,
+                submitted_answer=correct_answer,
+                is_correct=True,
+                created_at=completed_at,
+            )
+        )
+
+    session.commit()
+    return CompleteGateReviewResponse(
+        completed_count=len(request.items),
+        repaired_count=repaired_count,
+        next_review_at=min(next_dates),
     )
 
 

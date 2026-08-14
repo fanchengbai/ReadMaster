@@ -5,6 +5,10 @@ export interface ReviewQuestion {
   type: QuestionType
   prompt: string
   options: string[]
+  lemma: string
+  phonetic: string | null
+  meanings: string[]
+  context: string
   source_book_title: string | null
   source_chapter_title: string | null
 }
@@ -37,6 +41,12 @@ export interface ReviewStats {
   next_review_at: string | null
 }
 
+export interface GateReviewCompletion {
+  completed_count: number
+  repaired_count: number
+  next_review_at: string
+}
+
 export async function fetchReviewSession(limit = 10): Promise<ReviewSession> {
   return requestJson(`/api/v1/review/session?limit=${limit}`)
 }
@@ -57,6 +67,22 @@ export async function submitReviewAnswer(
       question_type: question.type,
       prompt: question.prompt,
       answer,
+    }),
+  })
+}
+
+export async function completeGateReview(
+  questions: ReviewQuestion[],
+  mistakeCounts: Record<string, number>,
+): Promise<GateReviewCompletion> {
+  return requestJson('/api/v1/review/complete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      items: questions.map((question) => ({
+        question_id: question.id,
+        mistake_count: mistakeCounts[question.id] || 0,
+      })),
     }),
   })
 }

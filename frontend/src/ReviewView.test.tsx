@@ -8,7 +8,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-test('submits a context answer and completes the review session', async () => {
+test('moves through five gates and saves the completed journey', async () => {
   const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     const url = String(input)
     if (url.includes('/review/session')) {
@@ -22,6 +22,10 @@ test('submits a context answer and completes the review session', async () => {
           type: 'context_fill',
           prompt: '_____ makes reading active.',
           options: [],
+          lemma: 'curiosity',
+          phonetic: 'ˌkjʊəriˈɒsəti',
+          meanings: ['好奇心'],
+          context: 'Curiosity makes reading active.',
           source_book_title: 'Reading Mind',
           source_chapter_title: 'Chapter One',
         }],
@@ -38,15 +42,11 @@ test('submits a context answer and completes the review session', async () => {
         next_review_at: null,
       })
     }
-    if (url.endsWith('/review/answer') && init?.method === 'POST') {
+    if (url.endsWith('/review/complete') && init?.method === 'POST') {
       return jsonResponse({
-        is_correct: true,
-        correct_answer: 'curiosity',
-        explanation: '回答正确，已经完成这次巩固。',
-        wrong_count: 0,
-        review_stage: 1,
+        completed_count: 1,
+        repaired_count: 0,
         next_review_at: '2026-08-14T00:00:00Z',
-        answered_at: '2026-08-13T00:00:00Z',
       })
     }
     return jsonResponse({}, 404)
@@ -54,20 +54,48 @@ test('submits a context answer and completes the review session', async () => {
 
   render(<ReviewView onBack={vi.fn()} onVocabulary={vi.fn()} />)
 
-  const input = await screen.findByLabelText('填写缺少的英文单词')
-  fireEvent.change(input, { target: { value: 'curiosity' } })
-  fireEvent.click(screen.getByRole('button', { name: '提交答案' }))
+  await screen.findByText('第 1 关 · 初次认词')
+  completeChoice('认识这个词')
+  advancePassedGate()
 
-  expect(await screen.findByText('回答正确')).toBeInTheDocument()
+  await screen.findByText('第 2 关 · 释义辨别')
+  completeChoice('好奇心')
+  advancePassedGate()
+
+  await screen.findByText('第 3 关 · 语境选词')
+  completeChoice('curiosity')
+  advancePassedGate()
+
+  await screen.findByText('第 4 关 · 独立拼写')
+  completeInput('填写缺少的英文单词', 'curiosity')
+  advancePassedGate()
+
+  await screen.findByText('第 5 关 · 主动回想')
+  completeInput('填写对应的英文单词', 'curiosity')
+  fireEvent.click(await screen.findByRole('button', { name: '完成训练' }))
+
+  expect(await screen.findByRole('heading', { name: '五关全部完成' })).toBeInTheDocument()
   await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
-    '/api/v1/review/answer',
+    '/api/v1/review/complete',
     expect.objectContaining({ method: 'POST' }),
   ))
-
-  fireEvent.click(screen.getByRole('button', { name: '查看本轮结果' }))
-  expect(screen.getByRole('heading', { name: '本轮训练完成' })).toBeInTheDocument()
-  expect(screen.getByText('共完成 1 题，答对 1 题。')).toBeInTheDocument()
 })
+
+function completeChoice(answer: string) {
+  fireEvent.click(screen.getByRole('button', { name: answer }))
+  fireEvent.click(screen.getByRole('button', { name: '确认答案' }))
+  fireEvent.click(screen.getByRole('button', { name: '查看本关结果' }))
+}
+
+function completeInput(label: string, answer: string) {
+  fireEvent.change(screen.getByLabelText(label), { target: { value: answer } })
+  fireEvent.click(screen.getByRole('button', { name: '确认答案' }))
+  fireEvent.click(screen.getByRole('button', { name: '查看本关结果' }))
+}
+
+function advancePassedGate() {
+  fireEvent.click(screen.getByRole('button', { name: '进入下一关' }))
+}
 
 test('guides the reader to save words when no questions exist', async () => {
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {

@@ -5,12 +5,19 @@ from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_session
 from app.schemas.review import (
+    CompleteGateReviewRequest,
+    CompleteGateReviewResponse,
     ReviewSessionResponse,
     ReviewStatsResponse,
     SubmitReviewRequest,
     SubmitReviewResponse,
 )
-from app.services.review import create_review_session, get_review_stats, submit_review
+from app.services.review import (
+    complete_gate_review,
+    create_review_session,
+    get_review_stats,
+    submit_review,
+)
 
 router = APIRouter(prefix="/review", tags=["review"])
 
@@ -29,6 +36,14 @@ def submit_review_endpoint(
     session: Annotated[Session, Depends(get_session)],
 ) -> SubmitReviewResponse:
     return submit_review(session, request)
+
+
+@router.post("/complete", response_model=CompleteGateReviewResponse)
+def complete_gate_review_endpoint(
+    request: CompleteGateReviewRequest,
+    session: Annotated[Session, Depends(get_session)],
+) -> CompleteGateReviewResponse:
+    return complete_gate_review(session, request)
 
 
 @router.get("/stats", response_model=ReviewStatsResponse)

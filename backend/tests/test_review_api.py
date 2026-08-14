@@ -132,3 +132,36 @@ def test_review_session_only_returns_due_words(tmp_path: Path) -> None:
     assert next_session["due_count"] == 0
     assert next_session["scheduled_count"] == 1
     assert next_session["next_review_at"] == answer["next_review_at"]
+
+
+def test_five_gate_completion_records_repairs_and_schedules_once(tmp_path: Path) -> None:
+    with create_test_client(tmp_path) as client:
+        first = save_word(client, "curiosity")
+        second = save_word(client, "attention")
+        session = client.get("/api/v1/review/session").json()
+
+        assert session["questions"][0]["lemma"]
+        assert session["questions"][0]["context"]
+        response = client.post(
+            "/api/v1/review/complete",
+            json={
+                "items": [
+                    {"question_id": first["id"], "mistake_count": 0},
+                    {"question_id": second["id"], "mistake_count": 2},
+                ]
+            },
+        )
+        stats = client.get("/api/v1/review/stats").json()
+        words = client.get("/api/v1/user-words").json()
+
+    assert response.status_code == 200
+    assert response.json()["completed_count"] == 2
+    assert response.json()["repaired_count"] == 1
+    assert all(item["review_stage"] == 1 for item in words)
+    assert all(
+        datetime.fromisoformat(item["next_review_at"]) > datetime.now(UTC).replace(tzinfo=None)
+        for item in words
+    )
+    assert stats["total_attempts"] == 3
+    assert stats["correct_attempts"] == 2
+    assert stats["due_count"] == 0

@@ -11,6 +11,10 @@ class ReviewQuestion(BaseModel):
     type: QuestionType
     prompt: str
     options: list[str]
+    lemma: str
+    phonetic: str | None
+    meanings: list[str]
+    context: str
     source_book_title: str | None
     source_chapter_title: str | None
 
@@ -48,3 +52,18 @@ class ReviewStatsResponse(BaseModel):
     due_count: int
     scheduled_count: int
     next_review_at: datetime | None
+
+
+class CompleteGateItem(BaseModel):
+    question_id: str
+    mistake_count: int = Field(ge=0, le=100)
+
+
+class CompleteGateReviewRequest(BaseModel):
+    items: list[CompleteGateItem] = Field(min_length=1, max_length=30)
+
+
+class CompleteGateReviewResponse(BaseModel):
+    completed_count: int
+    repaired_count: int
+    next_review_at: datetime
